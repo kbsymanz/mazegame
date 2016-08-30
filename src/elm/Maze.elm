@@ -42,6 +42,7 @@ initialModel =
     , center = Cell (gameWindowSize // 2) (gameWindowSize // 2) False
     , exit = Nothing
     , isFinished = False
+    , allowToggleCells = False
     }
 
 
@@ -85,7 +86,10 @@ update msg model =
                             model.cells
 
                         Just c ->
-                            Dict.insert [ x, y ] { c | isWall = not c.isWall } model.cells
+                            if model.allowToggleCells then
+                                Dict.insert [ x, y ] { c | isWall = not c.isWall } model.cells
+                            else
+                                model.cells
             in
                 ( { model | cells = newCells }, Cmd.none )
 

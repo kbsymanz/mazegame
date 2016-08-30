@@ -58,11 +58,11 @@ drawCells model =
         cells =
             List.map snd (Dict.toList model.cells)
     in
-        List.map (\cell -> drawCell cell.x cell.y cell.isWall model.blockSize) cells
+        List.map (\cell -> drawCell cell.x cell.y cell.isWall model.allowToggleCells model.blockSize) cells
 
 
-drawCell : Int -> Int -> Bool -> Int -> S.Svg Msg
-drawCell x y isWall blockSize =
+drawCell : Int -> Int -> Bool -> Bool -> Int -> S.Svg Msg
+drawCell x y isWall drawGridLines blockSize =
     let
         -- Translate for blockSize and 0 based Svg system.
         xs =
@@ -74,8 +74,10 @@ drawCell x y isWall blockSize =
         ( fillColor, strokeColor ) =
             if isWall then
                 ( "black", "black" )
-            else
+            else if drawGridLines then
                 ( "lightgrey", "grey" )
+            else
+                ( "lightgrey", "lightgrey" )
     in
         S.rect
             [ S.width <| intToPx blockSize

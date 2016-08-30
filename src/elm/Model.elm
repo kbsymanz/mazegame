@@ -17,6 +17,7 @@ type alias Model =
     , center : Cell
     , exit : Maybe Cell
     , isFinished : Bool
+    , allowToggleCells : Bool
     }
 
 
