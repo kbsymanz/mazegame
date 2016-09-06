@@ -1,4 +1,4 @@
-module Maze exposing (..)
+module Maze exposing (initialWalls, update)
 
 import Dict
 import Html exposing (Html, div, text)
@@ -33,32 +33,40 @@ displayWindowSize =
     20
 
 
+{-| The number of pixels that make up the width and height of
+    each block.
+-}
+blockSize : Int
+blockSize =
+    10
+
+
 initialModel : Model
 initialModel =
-    { cells = initialWalls
-    , blockSize = 15
+    { cells = initialWalls gameWindowSize
+    , blockSize = blockSize
     , gameWindowSize = gameWindowSize
     , displayWindowSize = displayWindowSize
-    , center = Cell (gameWindowSize // 2) (gameWindowSize // 2) False
+    , center = Cell 10 10 True
     , exit = Nothing
     , isFinished = False
     , allowToggleCells = False
     }
 
 
-initialWalls : Dict.Dict (List Int) Cell
-initialWalls =
+initialWalls : Int -> Dict.Dict (List Int) Cell
+initialWalls windowSize =
     let
         -- top, left, right, bottom as a List
         outsideWall =
-            List.map (\x -> ( [ x, 1 ], Cell x 1 True )) [1..gameWindowSize]
-                ++ List.map (\x -> ( [ 1, x ], Cell 1 x True )) [1..gameWindowSize]
-                ++ List.map (\x -> ( [ gameWindowSize, x ], Cell gameWindowSize x True )) [1..gameWindowSize]
-                ++ List.map (\x -> ( [ x, gameWindowSize ], Cell x gameWindowSize True )) [1..gameWindowSize]
+            List.map (\x -> ( [ x, 1 ], Cell x 1 True )) [1..windowSize]
+                ++ List.map (\x -> ( [ 1, x ], Cell 1 x True )) [1..windowSize]
+                ++ List.map (\x -> ( [ windowSize, x ], Cell windowSize x True )) [1..windowSize]
+                ++ List.map (\x -> ( [ x, windowSize ], Cell x windowSize True )) [1..windowSize]
 
         -- All cells not on the edge.
         inner =
-            List.map (\x -> List.map (\y -> ( [ x, y ], Cell x y False )) [2..(gameWindowSize - 1)]) [2..(gameWindowSize - 1)]
+            List.map (\x -> List.map (\y -> ( [ x, y ], Cell x y False )) [2..(windowSize - 1)]) [2..(windowSize - 1)]
                 |> List.concat
     in
         Dict.fromList (outsideWall ++ inner)
@@ -92,6 +100,12 @@ update msg model =
                                 model.cells
             in
                 ( { model | cells = newCells }, Cmd.none )
+
+        ToggleAllowToggle ->
+            ( { model | allowToggleCells = not model.allowToggleCells }, Cmd.none )
+
+        DisplayWindowSize size ->
+            ( { model | displayWindowSize = size }, Cmd.none )
 
 
 

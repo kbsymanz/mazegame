@@ -18,15 +18,36 @@ intToPx int =
     int |> toString |> flip (++) "px"
 
 
+fourIntToString : Int -> Int -> Int -> Int -> String
+fourIntToString a b c d =
+    ((toString a) ++ " " ++ (toString b) ++ " " ++ (toString c) ++ " " ++ (toString d))
+
+
 view : Model -> Html Msg
 view model =
     let
+        bs =
+            model.blockSize
+
         wh =
-            model.gameWindowSize * model.blockSize
+            model.gameWindowSize * bs
+
+        vbx =
+            max 0 ((model.center.x * bs) - ((model.displayWindowSize * bs) // 2))
+
+        vby =
+            max 0 ((model.center.y * bs) - ((model.displayWindowSize * bs) // 2))
+
+        displayWH =
+            model.displayWindowSize * bs
+
+        _ =
+            Debug.log "view: vbx/vby/displayWH" ((toString vbx) ++ "/" ++ (toString vby) ++ "/" ++ (toString displayWH))
     in
         S.svg
             [ S.width (intToPx wh)
             , S.height (intToPx wh)
+            , S.viewBox <| (fourIntToString vbx vby displayWH displayWH)
             ]
             [ background model
             ]
@@ -55,8 +76,9 @@ drawCells : Model -> List (S.Svg Msg)
 drawCells model =
     let
         -- Convert from Dict to List, taking the values only, which are the cells.
+        -- NOTE: temporarily adding center to list in order to see where it is.
         cells =
-            List.map snd (Dict.toList model.cells)
+            (List.map snd (Dict.toList model.cells)) ++ [ model.center ]
     in
         List.map (\cell -> drawCell cell.x cell.y cell.isWall model.allowToggleCells model.blockSize) cells
 
