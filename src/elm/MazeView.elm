@@ -100,14 +100,40 @@ drawCell x y isWall drawGridLines blockSize =
                 ( "lightgrey", "grey" )
             else
                 ( "lightgrey", "lightgrey" )
+
+        cell =
+            S.rect
+                [ S.width <| intToPx blockSize
+                , S.height <| intToPx blockSize
+                , S.stroke strokeColor
+                , S.fill fillColor
+                , S.x (intToPx xs)
+                , S.y (intToPx ys)
+                , S.onClick (Click x y)
+                ]
+                []
+
+        contents =
+            if drawGridLines then
+                [ cell ]
+                    ++ [ S.text'
+                            [ S.x (toString (xs + (blockSize // 5)))
+                            , S.y (toString (ys + (blockSize // 2)))
+                            , S.fontSize (toString (blockSize // 5))
+                            , S.fontFamily "Verdana"
+                            , S.fontWeight "800"
+                            , S.onClick (Click x y)
+                            , S.fill
+                                (if isWall then
+                                    "white"
+                                 else
+                                    "black"
+                                )
+                            ]
+                            [ S.text ((toString x) ++ "," ++ (toString y)) ]
+                       ]
+            else
+                [ cell ]
     in
-        S.rect
-            [ S.width <| intToPx blockSize
-            , S.height <| intToPx blockSize
-            , S.stroke strokeColor
-            , S.fill fillColor
-            , S.x (intToPx xs)
-            , S.y (intToPx ys)
-            , S.onClick (Click x y)
-            ]
-            []
+        S.g []
+            contents

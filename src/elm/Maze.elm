@@ -30,7 +30,7 @@ gameWindowSize =
 -}
 displayWindowSize : Int
 displayWindowSize =
-    20
+    40
 
 
 {-| The number of pixels that make up the width and height of
@@ -38,7 +38,7 @@ displayWindowSize =
 -}
 blockSize : Int
 blockSize =
-    10
+    40
 
 
 initialModel : Model
@@ -50,7 +50,7 @@ initialModel =
     , center = Cell 10 10 True
     , exit = Nothing
     , isFinished = False
-    , allowToggleCells = False
+    , allowToggleCells = True
     }
 
 
