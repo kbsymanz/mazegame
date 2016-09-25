@@ -1,4 +1,4 @@
-module MazeView exposing (..)
+module View exposing (..)
 
 import Dict
 import Html exposing (Html, div, text)
@@ -9,8 +9,11 @@ import Svg.Events as S
 
 -- LOCAL IMPORTS
 
-import Model exposing (Model, Cell)
+import Model exposing (Model, Maze, Cell, Mode(..), getCurrentMaze)
 import Msg exposing (..)
+
+
+--import Util as U
 
 
 intToPx : Int -> String
@@ -26,20 +29,30 @@ fourIntToString a b c d =
 view : Model -> Html Msg
 view model =
     let
-        bs =
-            model.blockSize
+        maze =
+            getCurrentMaze model.mazes
 
-        wh =
-            model.gameWindowSize * bs
+        ( bs, wh, displayWindowSize, x, y ) =
+            case maze of
+                Just m ->
+                    ( m.blockSize
+                    , m.gameWindowSize * m.blockSize
+                    , m.displayWindowSize
+                    , m.center.x
+                    , m.center.y
+                    )
+
+                Nothing ->
+                    ( 0, 0, 0, 0, 0 )
 
         vbx =
-            max 0 ((model.center.x * bs) - ((model.displayWindowSize * bs) // 2))
+            max 0 ((x * bs) - ((displayWindowSize * bs) // 2))
 
         vby =
-            max 0 ((model.center.y * bs) - ((model.displayWindowSize * bs) // 2))
+            max 0 ((y * bs) - ((displayWindowSize * bs) // 2))
 
         displayWH =
-            model.displayWindowSize * bs
+            displayWindowSize * bs
 
         _ =
             Debug.log "view: vbx/vby/displayWH" ((toString vbx) ++ "/" ++ (toString vby) ++ "/" ++ (toString displayWH))
@@ -56,8 +69,16 @@ view model =
 background : Model -> Html Msg
 background model =
     let
+        currentMaze =
+            getCurrentMaze model.mazes
+
         wh =
-            model.gameWindowSize * model.blockSize
+            case currentMaze of
+                Just m ->
+                    m.gameWindowSize * m.blockSize
+
+                Nothing ->
+                    0
 
         list =
             [ S.rect
@@ -67,24 +88,32 @@ background model =
                 ]
                 []
             ]
-                ++ (drawCells model)
+                ++ (drawCells currentMaze model.mazeMode)
     in
         S.g [] list
 
 
-drawCells : Model -> List (S.Svg Msg)
-drawCells model =
+drawCells : Maybe Maze -> Mode -> List (S.Svg Msg)
+drawCells maze mode =
     let
-        -- Convert from Dict to List, taking the values only, which are the cells.
         -- NOTE: temporarily adding center to list in order to see where it is.
-        cells =
-            (List.map snd (Dict.toList model.cells)) ++ [ model.center ]
+        ( cells, blockSize ) =
+            case maze of
+                Just m ->
+                    ( (List.map snd (Dict.toList m.cells)) ++ [ m.center ]
+                    , m.blockSize
+                    )
+
+                Nothing ->
+                    ( []
+                    , 0
+                    )
     in
-        List.map (\cell -> drawCell cell.x cell.y cell.isWall model.allowToggleCells model.blockSize) cells
+        List.map (\cell -> drawCell cell.x cell.y cell.isWall mode blockSize) cells
 
 
-drawCell : Int -> Int -> Bool -> Bool -> Int -> S.Svg Msg
-drawCell x y isWall drawGridLines blockSize =
+drawCell : Int -> Int -> Bool -> Mode -> Int -> S.Svg Msg
+drawCell x y isWall mode blockSize =
     let
         -- Translate for blockSize and 0 based Svg system.
         xs =
@@ -96,7 +125,7 @@ drawCell x y isWall drawGridLines blockSize =
         ( fillColor, strokeColor ) =
             if isWall then
                 ( "black", "black" )
-            else if drawGridLines then
+            else if mode == Editing then
                 ( "lightgrey", "grey" )
             else
                 ( "lightgrey", "lightgrey" )
@@ -114,7 +143,7 @@ drawCell x y isWall drawGridLines blockSize =
                 []
 
         contents =
-            if drawGridLines then
+            if mode == Editing then
                 [ cell ]
                     ++ [ S.text'
                             [ S.x (toString (xs + (blockSize // 5)))
