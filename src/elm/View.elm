@@ -38,8 +38,8 @@ view model =
                     ( m.blockSize
                     , m.gameWindowSize * m.blockSize
                     , m.displayWindowSize
-                    , m.center.x
-                    , m.center.y
+                    , fst m.center
+                    , snd m.center
                     )
 
                 Nothing ->
@@ -96,24 +96,36 @@ background model =
 drawCells : Maybe Maze -> Mode -> List (S.Svg Msg)
 drawCells maze mode =
     let
-        -- NOTE: temporarily adding center to list in order to see where it is.
-        ( cells, blockSize ) =
+        ( cells, blockSize, centerX, centerY ) =
             case maze of
                 Just m ->
-                    ( (List.map snd (Dict.toList m.cells)) ++ [ m.center ]
+                    ( (List.map snd (Dict.toList m.cells))
                     , m.blockSize
+                    , fst m.center
+                    , snd m.center
                     )
 
                 Nothing ->
                     ( []
                     , 0
+                    , 0
+                    , 0
                     )
     in
-        List.map (\cell -> drawCell cell.x cell.y cell.isWall mode blockSize) cells
+        List.map
+            (\cell ->
+                drawCell cell.x
+                    cell.y
+                    cell.isWall
+                    (centerX == cell.x && centerY == cell.y)
+                    mode
+                    blockSize
+            )
+            cells
 
 
-drawCell : Int -> Int -> Bool -> Mode -> Int -> S.Svg Msg
-drawCell x y isWall mode blockSize =
+drawCell : Int -> Int -> Bool -> Bool -> Mode -> Int -> S.Svg Msg
+drawCell x y isWall isCenter mode blockSize =
     let
         -- Translate for blockSize and 0 based Svg system.
         xs =
@@ -122,9 +134,12 @@ drawCell x y isWall mode blockSize =
         ys =
             (y - 1) * blockSize
 
+        -- TODO: this is not flexible enough.
         ( fillColor, strokeColor ) =
             if isWall then
                 ( "black", "black" )
+            else if isCenter then
+                ( "white", "grey" )
             else if mode == Editing then
                 ( "lightgrey", "grey" )
             else
