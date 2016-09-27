@@ -9,9 +9,20 @@ import Svg.Attributes as S
 
 -- LOCAL IMPORTS
 
-import MazeView as MV
-import Model exposing (Model, Cell)
+import View as V
+import Model
+    exposing
+        ( Model
+        , Maze
+        , Mode(..)
+        , Cell
+        , defaultMaze
+        , emptyMazes
+        , getCurrentMaze
+        , updateCurrentMaze
+        )
 import Msg exposing (Msg(..))
+import Util as U
 
 
 -- MODEL
@@ -22,7 +33,7 @@ import Msg exposing (Msg(..))
 -}
 gameWindowSize : Int
 gameWindowSize =
-    40
+    20
 
 
 {-| The number of blocks the user can currently see horizontally
@@ -38,19 +49,15 @@ displayWindowSize =
 -}
 blockSize : Int
 blockSize =
-    10
+    40
 
 
 initialModel : Model
 initialModel =
-    { cells = initialWalls gameWindowSize
-    , blockSize = blockSize
-    , gameWindowSize = gameWindowSize
-    , displayWindowSize = displayWindowSize
-    , center = Cell 10 10 True
-    , exit = Nothing
-    , isFinished = False
-    , allowToggleCells = False
+    { mazes =
+        Just (defaultMaze blockSize gameWindowSize displayWindowSize)
+            |> updateCurrentMaze emptyMazes
+    , mazeMode = Editing
     }
 
 
@@ -80,32 +87,57 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Move cell ->
+            {- TODO: actually write code here. -}
             model ! []
 
         Click x y ->
             -- Toggle whether the chosen cell is a wall or not.
             let
+                -- Get the current maze from the List.
+                currentMaze' =
+                    getCurrentMaze model.mazes
+
+                -- Get the cell from the Maze.
                 cell =
-                    Dict.get [ x, y ] model.cells
+                    U.getCell currentMaze' [ x, y ]
 
-                newCells =
-                    case cell of
-                        Nothing ->
-                            model.cells
+                -- Create a new "toggled" version of the cell.
+                newCell =
+                    U.toggleCellWall currentMaze' cell
 
-                        Just c ->
-                            if model.allowToggleCells then
-                                Dict.insert [ x, y ] { c | isWall = not c.isWall } model.cells
-                            else
-                                model.cells
+                -- Get a version of the maze with the new cell in it.
+                newMaze =
+                    U.updateMazeWithCell newCell [ x, y ] currentMaze'
+
+                -- Get an updated version of all the mazes with the new maze as current.
+                mazes' =
+                    updateCurrentMaze model.mazes newMaze
             in
-                ( { model | cells = newCells }, Cmd.none )
+                { model | mazes = mazes' } ! []
 
-        ToggleAllowToggle ->
-            ( { model | allowToggleCells = not model.allowToggleCells }, Cmd.none )
+        PlayMode mode ->
+            { model | mazeMode = mode } ! []
 
         DisplayWindowSize size ->
-            ( { model | displayWindowSize = size }, Cmd.none )
+            let
+                -- Get the current maze from the List.
+                currentMaze' =
+                    getCurrentMaze model.mazes
+
+                -- Make a version of the maze with the adjusted value.
+                newMaze =
+                    case currentMaze' of
+                        Just m ->
+                            Just { m | displayWindowSize = size }
+
+                        Nothing ->
+                            currentMaze'
+
+                -- Get an updated version of all the mazes with the new maze as current.
+                mazes' =
+                    updateCurrentMaze model.mazes newMaze
+            in
+                { model | mazes = mazes' } ! []
 
 
 
@@ -121,6 +153,6 @@ main =
     App.program
         { init = ( initialModel, Cmd.none )
         , update = update
-        , view = MV.view
+        , view = V.view
         , subscriptions = subscriptions
         }
