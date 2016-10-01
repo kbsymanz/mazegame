@@ -44,7 +44,7 @@ type alias Maze =
     , blockSize : Int
     , gameWindowSize : Int
     , displayWindowSize : Int
-    , center : Cell
+    , center : ( Int, Int )
     , title : String
     }
 
@@ -77,7 +77,7 @@ defaultMaze bSize gwSize dwSize =
     , blockSize = bSize
     , gameWindowSize = gwSize
     , displayWindowSize = dwSize
-    , center = Cell 10 10 False
+    , center = ( 10, 10 )
     , title = "Testing only"
     }
 

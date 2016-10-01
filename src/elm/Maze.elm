@@ -1,10 +1,7 @@
 module Maze exposing (initialWalls, update)
 
 import Dict
-import Html exposing (Html, div, text)
 import Html.App as App
-import Svg as S
-import Svg.Attributes as S
 
 
 -- LOCAL IMPORTS
@@ -87,8 +84,20 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Move cell ->
-            {- TODO: actually write code here. -}
-            model ! []
+            let
+                -- Get the current maze from the List.
+                currentMaze' =
+                    getCurrentMaze model.mazes
+
+                -- Get a version of the maze with the new cell in it.
+                newMaze =
+                    U.updateMazeWithCell (Just cell) [ cell.x, cell.y ] currentMaze'
+
+                -- Get an updated version of all the mazes with the new maze as current.
+                mazes' =
+                    updateCurrentMaze model.mazes newMaze
+            in
+                { model | mazes = mazes' } ! []
 
         Click x y ->
             -- Toggle whether the chosen cell is a wall or not.
@@ -144,6 +153,7 @@ update msg model =
 -- MAIN
 
 
+subscriptions : a -> Sub b
 subscriptions =
     always Sub.none
 
