@@ -2,6 +2,7 @@ module Maze exposing (initialWalls, update)
 
 import Dict
 import Html.App as App
+import Material
 
 
 -- LOCAL IMPORTS
@@ -17,6 +18,10 @@ import Model
         , emptyMazes
         , getCurrentMaze
         , updateCurrentMaze
+        , createNewMaze
+        , gotoPreviousMaze
+        , gotoNextMaze
+        , gotoRecMaze
         )
 import Msg exposing (Msg(..))
 import Util as U
@@ -54,7 +59,8 @@ initialModel =
     { mazes =
         Just (defaultMaze blockSize gameWindowSize displayWindowSize)
             |> updateCurrentMaze emptyMazes
-    , mazeMode = Editing
+    , mazeMode = Viewing
+    , mdl = Material.model
     }
 
 
@@ -82,7 +88,10 @@ initialWalls windowSize =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
+    case Debug.log "update" msg of
+        Mdl msg' ->
+            Material.update msg' model
+
         Move cell ->
             let
                 -- Get the current maze from the List.
@@ -122,10 +131,22 @@ update msg model =
                 mazes' =
                     updateCurrentMaze model.mazes newMaze
             in
-                { model | mazes = mazes' } ! []
+                if model.mazeMode == Editing then
+                    { model | mazes = mazes' } ! []
+                else
+                    model ! []
 
         PlayMode mode ->
-            { model | mazeMode = mode } ! []
+            let
+                numMazes =
+                    Model.mazesAsList model.mazes
+                        |> fst
+                        |> List.length
+
+                _ =
+                    Debug.log "update PlayMode: count mazes" numMazes
+            in
+                { model | mazeMode = mode } ! []
 
         DisplayWindowSize size ->
             let
@@ -147,6 +168,22 @@ update msg model =
                     updateCurrentMaze model.mazes newMaze
             in
                 { model | mazes = mazes' } ! []
+
+        NewMaze ->
+            let
+                model' =
+                    { model | mazes = createNewMaze model.mazes }
+            in
+                model' ! []
+
+        GoToPreviousMaze ->
+            { model | mazes = gotoPreviousMaze model.mazes } ! []
+
+        GoToNextMaze ->
+            { model | mazes = gotoNextMaze model.mazes } ! []
+
+        GoToMaze idx ->
+            { model | mazes = gotoRecMaze model.mazes idx } ! []
 
 
 

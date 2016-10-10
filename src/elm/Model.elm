@@ -9,9 +9,16 @@ module Model
         , emptyMazes
         , getCurrentMaze
         , updateCurrentMaze
+        , createNewMaze
+        , gotoPreviousMaze
+        , gotoNextMaze
+        , mazesAsList
+        , gotoRecMaze
         )
 
+import Array
 import Dict
+import Material
 
 
 {- :
@@ -25,6 +32,7 @@ import Dict
 type alias Model =
     { mazes : Mazes
     , mazeMode : Mode
+    , mdl : Material.Model
     }
 
 
@@ -114,6 +122,21 @@ updateCurrentMaze (MazesConstructor { preMazes, currentMaze, postMazes }) maze =
     MazesConstructor { preMazes = preMazes, currentMaze = maze, postMazes = postMazes }
 
 
+createNewMaze : Mazes -> Mazes
+createNewMaze (MazesConstructor { preMazes, currentMaze, postMazes }) =
+    let
+        newMaze =
+            defaultMaze 10 40 20
+
+        postMazes' =
+            newMaze :: postMazes
+
+        newMazes =
+            MazesConstructor { preMazes = preMazes, currentMaze = currentMaze, postMazes = postMazes' }
+    in
+        gotoNextMaze newMazes
+
+
 gotoPreviousMaze : Mazes -> Mazes
 gotoPreviousMaze (MazesConstructor { preMazes, currentMaze, postMazes }) =
     let
@@ -171,3 +194,84 @@ gotoNextMaze (MazesConstructor { preMazes, currentMaze, postMazes }) =
                 List.take (postMazesLen - 1) postMazes
     in
         MazesConstructor { preMazes = preMazes', currentMaze = currentMaze', postMazes = postMazes' }
+
+
+{-| Returns a Mazes with the current record set to the zero-based index passed.
+-}
+gotoRecMaze : Mazes -> Int -> Mazes
+gotoRecMaze (MazesConstructor { preMazes, currentMaze, postMazes }) idx =
+    let
+        preMazesLen =
+            List.length preMazes
+
+        postMazesLen =
+            List.length postMazes
+
+        ( currMazeLen, currMazeAsList ) =
+            case currentMaze of
+                Just m ->
+                    ( 1, [ m ] )
+
+                Nothing ->
+                    ( 0, [] )
+
+        totalMazeLen =
+            preMazesLen + currMazeLen + postMazesLen
+
+        mazesList =
+            preMazes ++ currMazeAsList ++ postMazes
+
+        mazesArray =
+            Array.fromList mazesList
+
+        mazes =
+            -- Index is zero or less, go to first record.
+            if idx <= 0 then
+                MazesConstructor
+                    { preMazes = []
+                    , currentMaze =
+                        if preMazesLen > 0 then
+                            List.head preMazes
+                        else
+                            currentMaze
+                    , postMazes =
+                        (case List.tail (preMazes ++ currMazeAsList ++ postMazes) of
+                            Just a ->
+                                a
+
+                            Nothing ->
+                                []
+                        )
+                    }
+                -- Index exceeds the number records, go to last record.
+            else if idx >= totalMazeLen then
+                MazesConstructor
+                    { preMazes = List.take (totalMazeLen - 1) mazesList
+                    , currentMaze = List.drop (totalMazeLen - 1) mazesList |> List.head
+                    , postMazes = []
+                    }
+            else
+                MazesConstructor
+                    { preMazes = Array.toList <| Array.slice 0 idx mazesArray
+                    , currentMaze = Array.get idx mazesArray
+                    , postMazes = Array.toList <| Array.slice (idx + 1) (Array.length mazesArray) mazesArray
+                    }
+    in
+        mazes
+
+
+mazesAsList : Mazes -> ( List Maze, Int )
+mazesAsList (MazesConstructor { preMazes, currentMaze, postMazes }) =
+    let
+        ( currMaze, currMazeIdx ) =
+            case currentMaze of
+                Just m ->
+                    ( [ m ], List.length preMazes )
+
+                Nothing ->
+                    ( [], -1 )
+
+        mazes =
+            preMazes ++ currMaze ++ postMazes
+    in
+        ( mazes, currMazeIdx )
