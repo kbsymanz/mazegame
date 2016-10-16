@@ -5,6 +5,7 @@ import Html exposing (Html, div, p, text)
 import Html.Attributes as Html exposing (class, style)
 import Html.Events as Html
 import List
+import List.Zipper as Zipper exposing (Zipper)
 import Material
 import Material.Button as Button
 import Material.Card as Card
@@ -27,8 +28,6 @@ import Model
         , Maze
         , Cell
         , Mode(..)
-        , getCurrentMaze
-        , mazesAsList
         )
 import Msg exposing (..)
 
@@ -69,24 +68,15 @@ nextMazeBtn =
 
 view : Model -> Html Msg
 view model =
-    let
-        numMazes =
-            Model.mazesAsList model.mazes
-                |> fst
-                |> List.length
-
-        _ =
-            Debug.log "view: count mazes" numMazes
-    in
-        Layout.render Mdl
-            model.mdl
-            [ Layout.fixedHeader
-            ]
-            { header = headerSmall "Maze Deathtrap" model
-            , drawer = []
-            , tabs = ( [], [] )
-            , main = [ viewMain model ]
-            }
+    Layout.render Mdl
+        model.mdl
+        [ Layout.fixedHeader
+        ]
+        { header = headerSmall "Maze Deathtrap" model
+        , drawer = []
+        , tabs = ( [], [] )
+        , main = [ viewMain model ]
+        }
 
 
 viewMain : Model -> Html Msg
@@ -110,7 +100,10 @@ viewViewing : Model -> Html Msg
 viewViewing model =
     let
         ( mazesList, currMazeIdx ) =
-            mazesAsList model.mazes
+            ( Zipper.toList model.mazes
+            , Zipper.before model.mazes
+                |> List.length
+            )
 
         mazes =
             List.indexedMap (\idx maze -> mazeToCell model.mdl idx maze (idx == currMazeIdx)) mazesList
@@ -257,7 +250,7 @@ viewMaze : Model -> Html Msg
 viewMaze model =
     let
         maze =
-            getCurrentMaze model.mazes
+            Zipper.current model.mazes
 
         -- TODO: wh to be determined by available screen width and playmode.
         wh =
@@ -272,16 +265,11 @@ viewMaze model =
                     400
 
         ( bs, displayWindowSize, x, y ) =
-            case maze of
-                Just m ->
-                    ( m.blockSize
-                    , m.displayWindowSize
-                    , fst m.center
-                    , snd m.center
-                    )
-
-                Nothing ->
-                    ( 0, 0, 0, 0 )
+            ( maze.blockSize
+            , maze.displayWindowSize
+            , fst maze.center
+            , snd maze.center
+            )
 
         vbx =
             max 0 ((x * bs) - ((displayWindowSize * bs) // 2))
@@ -308,15 +296,10 @@ background : Model -> Html Msg
 background model =
     let
         currentMaze =
-            getCurrentMaze model.mazes
+            Zipper.current model.mazes
 
         wh =
-            case currentMaze of
-                Just m ->
-                    m.gameWindowSize * m.blockSize
-
-                Nothing ->
-                    0
+            currentMaze.gameWindowSize * currentMaze.blockSize
 
         list =
             [ S.rect
@@ -331,24 +314,15 @@ background model =
         S.g [] list
 
 
-drawCells : Maybe Maze -> Mode -> List (S.Svg Msg)
+drawCells : Maze -> Mode -> List (S.Svg Msg)
 drawCells maze mode =
     let
         ( cells, blockSize, centerX, centerY ) =
-            case maze of
-                Just m ->
-                    ( (List.map snd (Dict.toList m.cells))
-                    , m.blockSize
-                    , fst m.center
-                    , snd m.center
-                    )
-
-                Nothing ->
-                    ( []
-                    , 0
-                    , 0
-                    , 0
-                    )
+            ( (List.map snd (Dict.toList maze.cells))
+            , maze.blockSize
+            , fst maze.center
+            , snd maze.center
+            )
     in
         List.map
             (\cell ->
