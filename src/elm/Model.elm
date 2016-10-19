@@ -12,6 +12,7 @@ module Model
         )
 
 import Dict
+import Keyboard.Extra as Keyboard
 
 
 {- :
@@ -25,6 +26,7 @@ import Dict
 type alias Model =
     { mazes : Mazes
     , mazeMode : Mode
+    , keyboardModel : Keyboard.Model
     }
 
 

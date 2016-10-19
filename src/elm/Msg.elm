@@ -1,6 +1,7 @@
 module Msg exposing (..)
 
 import Model exposing (..)
+import Keyboard.Extra as Keyboard
 
 
 type Msg
@@ -8,3 +9,4 @@ type Msg
     | Click Int Int
     | PlayMode Mode
     | DisplayWindowSize Int
+    | KeyboardExtraMsg Keyboard.Msg

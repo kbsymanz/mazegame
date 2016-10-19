@@ -2,6 +2,7 @@ module Maze exposing (initialWalls, update)
 
 import Dict
 import Html.App as App
+import Keyboard.Extra as Keyboard
 
 
 -- LOCAL IMPORTS
@@ -49,14 +50,20 @@ blockSize =
     40
 
 
-initialModel : Model
-initialModel =
-    { mazes =
-        Just (defaultMaze blockSize gameWindowSize displayWindowSize)
-            |> updateCurrentMaze emptyMazes
-    , mazeMode = Editing
-    }
-
+init : ( Model, Cmd Msg )
+init =
+    let
+        ( keyboardModel, keyboardCmd ) =
+                    Keyboard.init
+    in
+        ( { mazes =
+            Just (defaultMaze blockSize gameWindowSize displayWindowSize)
+                |> updateCurrentMaze emptyMazes
+          , mazeMode = Editing
+          , keyboardModel = keyboardModel
+          }
+        , Cmd.map KeyboardExtraMsg keyboardCmd
+        )
 
 initialWalls : Int -> Dict.Dict (List Int) Cell
 initialWalls windowSize =
@@ -147,21 +154,36 @@ update msg model =
                     updateCurrentMaze model.mazes newMaze
             in
                 { model | mazes = mazes' } ! []
-
+        KeyboardExtraMsg keyMsg ->
+            let
+                ( keyboardModel, keyboardCmd ) =
+                            Keyboard.update keyMsg model.keyboardModel
+                arrows =
+                    Keyboard.arrows keyboardModel
+                isarrows =
+                    .x arrows /= 0 || .y arrows /= 0
+                _ =
+                    Debug.log "keyboardExtraMsg, hello, this is cool" isarrows
+            in
+                ( { model | keyboardModel = keyboardModel
+                  }
+                , Cmd.map KeyboardExtraMsg keyboardCmd
+                )
 
 
 -- MAIN
 
 
-subscriptions : a -> Sub b
-subscriptions =
-    always Sub.none
-
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ Sub.map KeyboardExtraMsg Keyboard.subscriptions
+        ]
 
 main : Program Never
 main =
     App.program
-        { init = ( initialModel, Cmd.none )
+        { init = init
         , update = update
         , view = V.view
         , subscriptions = subscriptions
