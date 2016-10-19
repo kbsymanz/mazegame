@@ -6,6 +6,7 @@ import Material
 -- LOCAL IMPORTS
 
 import Model exposing (..)
+import Keyboard.Extra as Keyboard
 
 
 type Msg
@@ -19,3 +20,4 @@ type Msg
     | GoToPreviousMaze
     | GoToMaze Int
     | SetTitle String
+    | KeyboardExtraMsg Keyboard.Msg

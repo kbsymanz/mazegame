@@ -5,6 +5,7 @@ import Dict
 import Html.App as App
 import List.Zipper as Zipper exposing (Zipper)
 import Material
+import Keyboard.Extra as Keyboard
 
 
 -- LOCAL IMPORTS
@@ -48,12 +49,19 @@ blockSize =
     40
 
 
-initialModel : Model
-initialModel =
-    { mazes = Zipper.singleton <| createMaze blockSize gameWindowSize displayWindowSize
-    , mazeMode = Viewing
-    , mdl = Material.model
-    }
+init : ( Model, Cmd Msg )
+init =
+    let
+        ( keyboardModel, keyboardCmd ) =
+            Keyboard.init
+    in
+        ( { mazes = Zipper.singleton <| createMaze blockSize gameWindowSize displayWindowSize
+          , mazeMode = Viewing
+          , mdl = Material.model
+          , keyboardModel = keyboardModel
+          }
+        , Cmd.map KeyboardExtraMsg keyboardCmd
+        )
 
 
 
@@ -196,20 +204,42 @@ update msg model =
             in
                 { model | mazes = newMazes } ! []
 
+        KeyboardExtraMsg keyMsg ->
+            let
+                ( keyboardModel, keyboardCmd ) =
+                    Keyboard.update keyMsg model.keyboardModel
+
+                arrows =
+                    Keyboard.arrows keyboardModel
+
+                isarrows =
+                    .x arrows /= 0 || .y arrows /= 0
+
+                _ =
+                    Debug.log "keyboardExtraMsg, hello, this is cool" isarrows
+            in
+                ( { model
+                    | keyboardModel = keyboardModel
+                  }
+                , Cmd.map KeyboardExtraMsg keyboardCmd
+                )
+
 
 
 -- MAIN
 
 
-subscriptions : a -> Sub b
-subscriptions =
-    always Sub.none
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ Sub.map KeyboardExtraMsg Keyboard.subscriptions
+        ]
 
 
 main : Program Never
 main =
     App.program
-        { init = ( initialModel, Cmd.none )
+        { init = init
         , update = update
         , view = V.view
         , subscriptions = subscriptions

@@ -12,6 +12,7 @@ import Array
 import Dict
 import List.Zipper as Zipper exposing (Zipper)
 import Material
+import Keyboard.Extra as Keyboard
 
 
 {- :
@@ -26,6 +27,7 @@ type alias Model =
     { mazes : Zipper Maze
     , mazeMode : Mode
     , mdl : Material.Model
+    , keyboardModel : Keyboard.Model
     }
 
 
