@@ -1,0 +1,19 @@
+{
+  "name": "mazegame",
+  "version": "1.0.0",
+  "description": "Maze game written in Elm.",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbsymanz/mazegame.git"
+  },
+  "author": "Benjamin Symanzik",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kbsymanz/mazegame/issues"
+  },
+  "homepage": "https://github.com/kbsymanz/mazegame#readme"
+}

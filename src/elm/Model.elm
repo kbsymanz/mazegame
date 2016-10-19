@@ -5,13 +5,13 @@ module Model
         , Maze
         , Cell
         , Mode(..)
-        , defaultMaze
-        , emptyMazes
-        , getCurrentMaze
-        , updateCurrentMaze
+        , createMaze
         )
 
+import Array
 import Dict
+import List.Zipper as Zipper exposing (Zipper)
+import Material
 import Keyboard.Extra as Keyboard
 
 
@@ -24,8 +24,9 @@ import Keyboard.Extra as Keyboard
 {-| Mazes are stored in a zip list.
 -}
 type alias Model =
-    { mazes : Mazes
+    { mazes : Zipper Maze
     , mazeMode : Mode
+    , mdl : Material.Model
     , keyboardModel : Keyboard.Model
     }
 
@@ -64,17 +65,8 @@ type Mode
     | Viewing
 
 
-emptyMazes : Mazes
-emptyMazes =
-    MazesConstructor
-        { preMazes = []
-        , currentMaze = Nothing
-        , postMazes = []
-        }
-
-
-defaultMaze : Int -> Int -> Int -> Maze
-defaultMaze bSize gwSize dwSize =
+createMaze : Int -> Int -> Int -> Maze
+createMaze bSize gwSize dwSize =
     { cells = initialWalls gwSize
     , blockSize = bSize
     , gameWindowSize = gwSize
@@ -100,76 +92,3 @@ initialWalls windowSize =
                 |> List.concat
     in
         Dict.fromList (outsideWall ++ inner)
-
-
-
--- API
-
-
-getCurrentMaze : Mazes -> Maybe Maze
-getCurrentMaze (MazesConstructor { preMazes, currentMaze, postMazes }) =
-    currentMaze
-
-
-updateCurrentMaze : Mazes -> Maybe Maze -> Mazes
-updateCurrentMaze (MazesConstructor { preMazes, currentMaze, postMazes }) maze =
-    MazesConstructor { preMazes = preMazes, currentMaze = maze, postMazes = postMazes }
-
-
-gotoPreviousMaze : Mazes -> Mazes
-gotoPreviousMaze (MazesConstructor { preMazes, currentMaze, postMazes }) =
-    let
-        preMazesLen =
-            List.length preMazes
-
-        preMazes' =
-            if preMazesLen == 0 then
-                preMazes
-            else
-                List.take (preMazesLen - 1) preMazes
-
-        currentMaze' =
-            if preMazesLen == 0 then
-                currentMaze
-            else
-                List.drop (preMazesLen - 1) preMazes
-                    |> List.head
-
-        postMazes' =
-            case currentMaze of
-                Just m ->
-                    m :: postMazes
-
-                Nothing ->
-                    postMazes
-    in
-        MazesConstructor { preMazes = preMazes', currentMaze = currentMaze', postMazes = postMazes' }
-
-
-gotoNextMaze : Mazes -> Mazes
-gotoNextMaze (MazesConstructor { preMazes, currentMaze, postMazes }) =
-    let
-        postMazesLen =
-            List.length postMazes
-
-        preMazes' =
-            case currentMaze of
-                Just m ->
-                    preMazes ++ [ m ]
-
-                Nothing ->
-                    preMazes
-
-        currentMaze' =
-            if postMazesLen == 0 then
-                currentMaze
-            else
-                List.head postMazes
-
-        postMazes' =
-            if postMazesLen == 0 then
-                postMazes
-            else
-                List.take (postMazesLen - 1) postMazes
-    in
-        MazesConstructor { preMazes = preMazes', currentMaze = currentMaze', postMazes = postMazes' }
