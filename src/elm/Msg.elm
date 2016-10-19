@@ -18,3 +18,4 @@ type Msg
     | GoToNextMaze
     | GoToPreviousMaze
     | GoToMaze Int
+    | SetTitle String

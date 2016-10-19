@@ -14,6 +14,7 @@ import Material.Grid as Grid exposing (grid, cell, size, Device(..))
 import Material.Layout as Layout
 import Material.List as MList
 import Material.Options as Options
+import Material.Textfield as Textfield
 import Material.Typography as Typo
 import Svg as S
 import Svg.Attributes as S
@@ -54,16 +55,16 @@ type alias Mdl =
     Material.Model
 
 
-newMazeBtn =
-    [ 0, 0 ]
+{-| MDL contexts.
+-}
+viewViewingContext : Int
+viewViewingContext =
+    0
 
 
-previousMazeBtn =
-    [ 0, 1 ]
-
-
-nextMazeBtn =
-    [ 0, 2 ]
+viewEditingContext : Int
+viewEditingContext =
+    1
 
 
 view : Model -> Html Msg
@@ -88,12 +89,72 @@ viewMain model =
                     viewViewing model
 
                 Editing ->
-                    viewViewing model
+                    viewEditing model
 
                 Playing ->
                     viewViewing model
     in
         view
+
+
+viewEditing : Model -> Html Msg
+viewEditing model =
+    let
+        currentMaze =
+            Zipper.current model.mazes
+    in
+        grid
+            [ Color.background <| Color.accentContrast
+            ]
+            [ cell
+                -- Maze on the left.
+                [ size Desktop 8
+                , size Tablet 6
+                , size Phone 4
+                ]
+                <| [ viewMaze model ]
+            , cell
+                -- Maze meta data on the right.
+                [ size Desktop 4
+                , size Tablet 2
+                , size Phone 4
+                ]
+                [ grid
+                    [ Color.background <| Color.accent
+                    ]
+                    -- Title of the maze.
+                    [ cell
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Textfield.render Mdl
+                            [ viewEditingContext, 1 ]
+                            model.mdl
+                            [ Textfield.label "Title"
+                            , Textfield.floatingLabel
+                            , Textfield.value currentMaze.title
+                            , Textfield.onInput SetTitle
+                            ]
+                        ]
+                    , cell
+                        -- Done editing button.
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Button.render Mdl
+                            [ viewEditingContext, 0 ]
+                            model.mdl
+                            [ Button.ripple
+                            , Button.colored
+                            , Button.onClick <| PlayMode Viewing
+                            ]
+                            [ text "Done Editing" ]
+                        ]
+                    ]
+                ]
+            ]
 
 
 viewViewing : Model -> Html Msg
@@ -152,7 +213,7 @@ viewViewing model =
                         , size Phone 4
                         ]
                         [ Button.render Mdl
-                            newMazeBtn
+                            [ viewViewingContext, 0 ]
                             model.mdl
                             [ Button.ripple
                             , Button.colored
@@ -206,7 +267,7 @@ mazeToCell mdl idx maze isCurrentMaze =
                         [ Color.background backgroundColor
                         , Color.text textColor
                         ]
-                        [ text ("Title: " ++ maze.title ++ " " ++ (toString idx)) ]
+                        [ text ("Title: " ++ maze.title) ]
                     ]
                 , Card.text [ Color.text textColor ]
                     [ text ("Size: " ++ gws ++ ", Viewport: " ++ vps) ]
