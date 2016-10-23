@@ -215,14 +215,46 @@ update msg model =
                 isarrows =
                     .x arrows /= 0 || .y arrows /= 0
 
+                currentmaze =
+                        Zipper.current model.mazes
+
+                center = currentmaze.center
+
+                newx =
+                    case arrows.x of
+                            -1 ->
+                                if fst center > 0 then
+                                        (fst center) - 1
+                                else
+                                    fst center
+                            1 -> if (fst center) > currentmaze.gameWindowSize then
+                                    fst center
+                                 else (fst center) + 1
+                            _ -> fst center
+                newy =
+                    case arrows.y of
+                            -1 ->
+                                if snd center > 0 then
+                                    (snd center) - 1
+                                else
+                                    snd center
+                            1 -> if (snd center) > currentmaze.gameWindowSize then
+                                    snd center
+                                 else (snd center) + 1
+                            _ -> snd center
+                updatedMazes =
+                    Zipper.update (\m -> { m | center = (newx,newy)}) model.mazes
                 _ =
                     Debug.log "keyboardExtraMsg, hello, this is cool" isarrows
             in
                 ( { model
                     | keyboardModel = keyboardModel
+                    , mazes = updatedMazes
                   }
                 , Cmd.map KeyboardExtraMsg keyboardCmd
                 )
+
+
 
 
 
