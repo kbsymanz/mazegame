@@ -10,16 +10,16 @@ import Keyboard.Extra as Keyboard
 
 -- LOCAL IMPORTS
 
-import View as V
+import MazeGenerate as MG
 import Model
     exposing
         ( Model
         , Maze
         , Mode(..)
-        , Cell
         , createMaze
         )
 import Msg exposing (Msg(..))
+import View as V
 
 
 -- MODEL
@@ -28,16 +28,16 @@ import Msg exposing (Msg(..))
 {-| The number of blocks the maze is horizontally and
     vertically. Blocks are blockSize pixels in size each.
 -}
-gameWindowSize : Int
-gameWindowSize =
-    20
+mazeSize : Int
+mazeSize =
+    10
 
 
 {-| The number of blocks the user can currently see horizontally
     and vertically. Blocks are blockSize pixels in size each.
 -}
-displayWindowSize : Int
-displayWindowSize =
+viewportSize : Int
+viewportSize =
     20
 
 
@@ -55,8 +55,9 @@ init =
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
     in
-        ( { mazes = Zipper.singleton <| createMaze blockSize gameWindowSize displayWindowSize
+        ( { mazes = Zipper.singleton <| createMaze blockSize mazeSize viewportSize
           , mazeMode = Viewing
+          , mazeGenerate = MG.emptyModel
           , mdl = Material.model
           , keyboardModel = keyboardModel
           }
@@ -71,50 +72,23 @@ init =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "update" msg of
-        Mdl msg' ->
-            Material.update msg' model
+        Mdl mdlMsg ->
+            Material.update mdlMsg model
 
         Move cell ->
             let
                 newMazes =
-                    Zipper.update (\m -> { m | cells = (Dict.insert [ cell.x, cell.y ] cell m.cells) }) model.mazes
+                    Zipper.update (\m -> { m | cells = (Dict.insert [ cell.col, cell.row ] cell m.cells) }) model.mazes
             in
                 { model | mazes = newMazes } ! []
-
-        Click x y ->
-            -- Toggle whether the chosen cell is a wall or not.
-            let
-                currMaze =
-                    Zipper.current model.mazes
-
-                newMaze =
-                    case
-                        currMaze
-                            |> .cells
-                            |> Dict.get [ x, y ]
-                    of
-                        Just c ->
-                            { c | isWall = not c.isWall }
-                                |> (\c -> { currMaze | cells = (Dict.insert [ x, y ] c currMaze.cells) })
-
-                        Nothing ->
-                            currMaze
-
-                newMazes =
-                    Zipper.update (always newMaze) model.mazes
-            in
-                if model.mazeMode == Editing then
-                    { model | mazes = newMazes } ! []
-                else
-                    model ! []
 
         PlayMode mode ->
             { model | mazeMode = mode } ! []
 
-        DisplayWindowSize size ->
+        ViewportSize size ->
             let
                 newMazes =
-                    Zipper.update (\m -> { m | displayWindowSize = size }) model.mazes
+                    Zipper.update (\m -> { m | viewportSize = size }) model.mazes
             in
                 { model | mazes = newMazes } ! []
 
@@ -223,6 +197,17 @@ update msg model =
                   }
                 , Cmd.map KeyboardExtraMsg keyboardCmd
                 )
+
+        MazeGenerate mgMsg ->
+            let
+                ( mgModel, mgCmd ) =
+                    MG.update mgMsg model.mazeGenerate
+
+                newMazes =
+                    Zipper.current model.mazes
+                        |> (\m -> Zipper.update (always { m | cells = mgModel.cells }) model.mazes)
+            in
+                ( { model | mazeGenerate = mgModel, mazes = newMazes }, Cmd.map (\m -> MazeGenerate m) mgCmd )
 
 
 
