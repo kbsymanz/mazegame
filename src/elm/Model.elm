@@ -17,12 +17,6 @@ import Keyboard.Extra as Keyboard
 import MazeGenerate as MG
 
 
-{- :
-   The mazeSize and viewportSize are in blockSize units. blockSize is
-   in pixels.
--}
-
-
 {-| Mazes are stored in a zip list.
 -}
 type alias Model =
@@ -36,7 +30,6 @@ type alias Model =
 
 type alias Maze =
     { cells : Dict.Dict (List Int) MG.Cell
-    , blockSize : Int
     , mazeSize : Int
     , viewportSize : Int
     , center : ( Int, Int )
@@ -70,10 +63,9 @@ type Mode
     | Viewing
 
 
-createMaze : Int -> Int -> Int -> Maze
-createMaze bSize gwSize dwSize =
+createMaze : Int -> Int -> Maze
+createMaze gwSize dwSize =
     { cells = initialCells gwSize
-    , blockSize = bSize
     , mazeSize = gwSize
     , viewportSize = dwSize
     , center = ( 10, 10 )

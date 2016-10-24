@@ -26,7 +26,7 @@ import View as V
 
 
 {-| The number of blocks the maze is horizontally and
-    vertically. Blocks are blockSize pixels in size each.
+    vertically.
 -}
 mazeSize : Int
 mazeSize =
@@ -34,19 +34,11 @@ mazeSize =
 
 
 {-| The number of blocks the user can currently see horizontally
-    and vertically. Blocks are blockSize pixels in size each.
+    and vertically.
 -}
 viewportSize : Int
 viewportSize =
-    20
-
-
-{-| The number of pixels that make up the width and height of
-    each block.
--}
-blockSize : Int
-blockSize =
-    40
+    60
 
 
 init : ( Model, Cmd Msg )
@@ -55,7 +47,7 @@ init =
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
     in
-        ( { mazes = Zipper.singleton <| createMaze blockSize mazeSize viewportSize
+        ( { mazes = Zipper.singleton <| createMaze mazeSize viewportSize
           , mazeMode = Viewing
           , mazeGenerate = MG.emptyModel
           , mdl = Material.model
@@ -96,7 +88,7 @@ update msg model =
             -- Inserts the new maze after the current maze and makes it current.
             let
                 newMaze =
-                    createMaze 10 40 20
+                    createMaze 40 40
 
                 newMazes =
                     case

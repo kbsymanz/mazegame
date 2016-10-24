@@ -149,7 +149,7 @@ viewEditing model =
                             model.mdl
                             [ Button.ripple
                             , Button.colored
-                            , Button.onClick <| MazeGenerate (MG.BinaryTreeInit 10)
+                            , Button.onClick <| MazeGenerate (MG.BinaryTreeInit currentMaze.mazeSize)
                             ]
                             [ text "Generate the maze" ]
                         ]
@@ -329,51 +329,52 @@ viewMaze model =
         maze =
             Zipper.current model.mazes
 
-        -- TODO: wh to be determined by available screen width and playmode.
-        wh =
+        -- TODO: widthHeight and blockSize to be determined by available
+        -- screen width and playmode instead of arbitrary like this.
+        ( widthHeight, blockSize ) =
             case model.mazeMode of
                 Viewing ->
-                    300
+                    ( 300, 300 // maze.mazeSize )
 
                 Editing ->
-                    500
+                    ( 500, 500 // maze.mazeSize )
 
                 Playing ->
-                    400
+                    ( 400, 400 // maze.mazeSize )
 
-        ( bs, viewportSize, x, y ) =
-            ( maze.blockSize
-            , maze.viewportSize
+        ( viewportSize, x, y ) =
+            ( maze.viewportSize
             , fst maze.center
             , snd maze.center
             )
 
         vbx =
-            max 0 ((x * bs) - ((viewportSize * bs) // 2))
+            max 0 ((x * blockSize) - ((viewportSize * blockSize) // 2))
 
         vby =
-            max 0 ((y * bs) - ((viewportSize * bs) // 2))
+            max 0 ((y * blockSize) - ((viewportSize * blockSize) // 2))
 
         displayWH =
-            viewportSize * bs
+            viewportSize * blockSize
     in
         S.svg
-            [ S.width (intToPx wh)
-            , S.height (intToPx wh)
+            [ S.width (intToPx widthHeight)
+            , S.height (intToPx widthHeight)
             , S.viewBox <| (fourIntToString vbx vby displayWH displayWH)
             ]
-            [ background model
+            [ background model blockSize
             ]
 
 
-background : Model -> Html Msg
-background model =
+background : Model -> Int -> Html Msg
+background model blockSize =
     let
         currentMaze =
             Zipper.current model.mazes
 
+        -- TODO: 10 is a hard-coded blockSize. Set according to available space.
         wh =
-            currentMaze.mazeSize * currentMaze.blockSize
+            currentMaze.mazeSize * blockSize
 
         list =
             [ S.rect
@@ -383,17 +384,16 @@ background model =
                 ]
                 []
             ]
-                ++ (drawCells currentMaze model.mazeMode)
+                ++ (drawCells currentMaze model.mazeMode blockSize)
     in
         S.g [] list
 
 
-drawCells : Maze -> Mode -> List (S.Svg Msg)
-drawCells maze mode =
+drawCells : Maze -> Mode -> Int -> List (S.Svg Msg)
+drawCells maze mode blockSize =
     let
-        ( cells, blockSize, centerX, centerY ) =
+        ( cells, centerX, centerY ) =
             ( (List.map snd (Dict.toList maze.cells))
-            , maze.blockSize
             , fst maze.center
             , snd maze.center
             )
@@ -504,65 +504,3 @@ drawCell row col north east south west isCenter mode blockSize =
     in
         S.g []
             cellLines
-
-
-
-{- :
-   drawCell : Int -> Int -> Bool -> Bool -> Mode -> Int -> S.Svg Msg
-   drawCell x y isWall isCenter mode blockSize =
-       let
-           -- Translate for blockSize and 0 based Svg system.
-           xs =
-               (x - 1) * blockSize
-
-           ys =
-               (y - 1) * blockSize
-
-           -- TODO: this is not flexible enough.
-           ( fillColor, strokeColor ) =
-               if isWall then
-                   ( "black", "black" )
-               else if isCenter then
-                   ( "white", "grey" )
-               else if mode == Editing then
-                   ( "lightgrey", "grey" )
-               else
-                   ( "lightgrey", "lightgrey" )
-
-           cell =
-               S.rect
-                   [ S.width <| intToPx blockSize
-                   , S.height <| intToPx blockSize
-                   , S.stroke strokeColor
-                   , S.fill fillColor
-                   , S.x (intToPx xs)
-                   , S.y (intToPx ys)
-                   , S.onClick (Click x y)
-                   ]
-                   []
-
-           contents =
-               if mode == Editing then
-                   [ cell ]
-                       ++ [ S.text'
-                               [ S.x (toString (xs + (blockSize // 5)))
-                               , S.y (toString (ys + (blockSize // 2)))
-                               , S.fontSize (toString (blockSize // 5))
-                               , S.fontFamily "Verdana"
-                               , S.fontWeight "800"
-                               , S.onClick (Click x y)
-                               , S.fill
-                                   (if isWall then
-                                       "white"
-                                    else
-                                       "black"
-                                   )
-                               ]
-                               [ S.text ((toString x) ++ "," ++ (toString y)) ]
-                          ]
-               else
-                   [ cell ]
-       in
-           S.g []
-               contents
--}
