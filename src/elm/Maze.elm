@@ -182,34 +182,48 @@ update msg model =
                     .x arrows /= 0 || .y arrows /= 0
 
                 currentmaze =
-                        Zipper.current model.mazes
+                    Zipper.current model.mazes
 
-                center = currentmaze.center
+                center =
+                    currentmaze.center
 
                 newx =
                     case arrows.x of
-                            -1 ->
-                                if fst center > 0 then
-                                        (fst center) - 1
-                                else
-                                    fst center
-                            1 -> if (fst center) > currentmaze.gameWindowSize then
-                                    fst center
-                                 else (fst center) + 1
-                            _ -> fst center
+                        -1 ->
+                            if fst center > 0 then
+                                (fst center) - 1
+                            else
+                                fst center
+
+                        1 ->
+                            if (fst center) > currentmaze.mazeSize then
+                                fst center
+                            else
+                                (fst center) + 1
+
+                        _ ->
+                            fst center
+
                 newy =
                     case arrows.y of
-                            -1 ->
-                                if snd center > 0 then
-                                    (snd center) - 1
-                                else
-                                    snd center
-                            1 -> if (snd center) > currentmaze.gameWindowSize then
-                                    snd center
-                                 else (snd center) + 1
-                            _ -> snd center
+                        -1 ->
+                            if snd center > 0 then
+                                (snd center) - 1
+                            else
+                                snd center
+
+                        1 ->
+                            if (snd center) > currentmaze.mazeSize then
+                                snd center
+                            else
+                                (snd center) + 1
+
+                        _ ->
+                            snd center
+
                 updatedMazes =
-                    Zipper.update (\m -> { m | center = (newx,newy)}) model.mazes
+                    Zipper.update (\m -> { m | center = ( newx, newy ) }) model.mazes
+
                 _ =
                     Debug.log "keyboardExtraMsg, hello, this is cool" isarrows
             in
@@ -230,8 +244,6 @@ update msg model =
                         |> (\m -> Zipper.update (always { m | cells = mgModel.cells }) model.mazes)
             in
                 ( { model | mazeGenerate = mgModel, mazes = newMazes }, Cmd.map (\m -> MazeGenerate m) mgCmd )
-
-
 
 
 
