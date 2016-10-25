@@ -8,6 +8,7 @@ module MazeGenerate
         )
 
 import Dict
+import Process
 import Random
 import Task
 
@@ -25,14 +26,8 @@ type Direction
 
 {- :
    To Do:
-   1. Random generation requires use of update, etc. Plan out messages used.
-   2. Plan out what is needed in the model: seed at least?
-   x. Create initial model so that main program can initialize with it.
-   x. Create mazeGeneration field in Maze module.
-   5. Do the Binary Tree algorithm. Consider starting in upper left corner.
    6. Add tests.
    7. Go through all code and standardize on north or top, etc.
-   x. Get rid of original cells field in maze.
    9. Create a random exit on the maze at the end.
    10. Do the Sidewinder algorithm.
    11. Turn the whole thing into a package.
@@ -69,6 +64,7 @@ type alias Cell =
 type Msg
     = BinaryTreeInit Int
     | BinaryTreeUpdate Bool
+    | BinaryTreeDoRandom
     | BinaryTreeComplete
 
 
@@ -93,6 +89,13 @@ update msg model =
                     generateBinaryTree model bool
             in
                 newModel ! [ newCmd ]
+
+        BinaryTreeDoRandom ->
+            {- : Generate a random Bool for the BinaryTree algorithm. It is possible
+               to directly generate the Bool using BinaryTreeUpdate as the target
+               but it will lock up the UI.
+            -}
+            ( model, Random.generate BinaryTreeUpdate Random.bool )
 
         BinaryTreeComplete ->
             model ! []
@@ -158,7 +161,12 @@ generateBinaryTree model bool =
             if isCompleted then
                 Task.perform (always BinaryTreeComplete) (always BinaryTreeComplete) (Task.succeed True)
             else
-                Random.generate BinaryTreeUpdate Random.bool
+                {- : Do this to skip the sleep altogether. This is fastest but it ties up the UI. -}
+                --Random.generate BinaryTreeUpdate Random.bool
+                {- : Here we sleep to avoid locking up the screen. The BinaryTreeDoRandom case in
+                   update will perform the actual random Bool generation.
+                -}
+                Task.perform (always BinaryTreeDoRandom) (always BinaryTreeDoRandom) (Process.sleep 0)
     in
         newModel ! [ newCmd ]
 
