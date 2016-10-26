@@ -406,7 +406,7 @@ drawCells maze mode blockSize =
                     cell.eastLink
                     cell.southLink
                     cell.westLink
-                    (centerX == cell.row && centerY == cell.col)
+                    (centerX == cell.col && centerY == cell.row)
                     mode
                     blockSize
             )
@@ -491,7 +491,11 @@ drawCell row col north east south west isCenter mode blockSize =
                 [ S.width <| intToPx blockSize
                 , S.height <| intToPx blockSize
                 , S.stroke fillColor
-                , S.fill fillColor
+                , S.fill
+                    <| if isCenter then
+                        "blue"
+                       else
+                        fillColor
                 , S.x (intToPx xs)
                 , S.y (intToPx ys)
                 ]

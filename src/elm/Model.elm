@@ -37,26 +37,6 @@ type alias Maze =
     }
 
 
-
-{- :
-      type alias Cell =
-          { x : Int
-          , y : Int
-          , isWall : Bool
-          }
-
-
-   type alias Cell =
-       { col : Int
-       , row : Int
-       , northLink : Bool
-       , eastLink : Bool
-       , southLink : Bool
-       , westLink : Bool
-       }
--}
-
-
 type Mode
     = Editing
     | Playing
@@ -89,24 +69,3 @@ initialCells windowSize =
                 |> List.concat
     in
         Dict.fromList (outerWall ++ inner)
-
-
-
-{- :
-   initialWalls : Int -> Dict.Dict (List Int) Cell
-   initialWalls windowSize =
-       let
-           -- top, left, right, bottom as a List
-           outsideWall =
-               List.map (\x -> ( [ x, 1 ], Cell x 1 True )) [1..windowSize]
-                   ++ List.map (\x -> ( [ 1, x ], Cell 1 x True )) [1..windowSize]
-                   ++ List.map (\x -> ( [ windowSize, x ], Cell windowSize x True )) [1..windowSize]
-                   ++ List.map (\x -> ( [ x, windowSize ], Cell x windowSize True )) [1..windowSize]
-
-           -- All cells not on the edge.
-           inner =
-               List.map (\x -> List.map (\y -> ( [ x, y ], Cell x y False )) [2..(windowSize - 1)]) [2..(windowSize - 1)]
-                   |> List.concat
-       in
-           Dict.fromList (outsideWall ++ inner)
--}

@@ -11,8 +11,7 @@ import Keyboard.Extra as Keyboard
 
 
 type Msg
-    = Move Cell
-    | PlayMode Mode
+    = PlayMode Mode
     | ViewportSize Int
     | Mdl (Material.Msg Msg)
     | NewMaze

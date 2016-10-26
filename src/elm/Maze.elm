@@ -30,7 +30,7 @@ import View as V
 -}
 mazeSize : Int
 mazeSize =
-    10
+    20
 
 
 {-| The number of blocks the user can currently see horizontally
@@ -66,13 +66,6 @@ update msg model =
     case Debug.log "update" msg of
         Mdl mdlMsg ->
             Material.update mdlMsg model
-
-        Move cell ->
-            let
-                newMazes =
-                    Zipper.update (\m -> { m | cells = (Dict.insert [ cell.col, cell.row ] cell m.cells) }) model.mazes
-            in
-                { model | mazes = newMazes } ! []
 
         PlayMode mode ->
             { model | mazeMode = mode } ! []
