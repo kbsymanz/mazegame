@@ -1,25 +1,22 @@
 module View exposing (..)
 
-import Dict
+import Array
 import Html exposing (Html, div, p, text)
-import Html.Attributes as Html exposing (class, style)
 import Html.Events as Html
 import List
 import List.Zipper as Zipper exposing (Zipper)
+import Matrix
 import Material
 import Material.Button as Button
 import Material.Card as Card
 import Material.Color as Color
 import Material.Grid as Grid exposing (grid, cell, size, Device(..))
 import Material.Layout as Layout
-import Material.List as MList
 import Material.Options as Options
 import Material.Textfield as Textfield
 import Material.Typography as Typo
-import Set exposing (Set)
 import Svg as S
 import Svg.Attributes as S
-import Svg.Events as S
 
 
 -- LOCAL IMPORTS
@@ -149,7 +146,7 @@ viewEditing model =
                             model.mdl
                             [ Button.ripple
                             , Button.colored
-                            , Button.onClick <| MazeGenerate (MG.BinaryTreeInit currentMaze.mazeSize)
+                            , Button.onClick <| MazeGenerate (MG.BinaryTreeInit currentMaze.mazeSize currentMaze.id)
                             ]
                             [ text "Generate the maze" ]
                         ]
@@ -393,35 +390,48 @@ drawCells : Maze -> Mode -> Int -> List (S.Svg Msg)
 drawCells maze mode blockSize =
     let
         ( cells, centerX, centerY ) =
-            ( (List.map snd (Dict.toList maze.cells))
+            ( Matrix.toIndexedArray maze.cells
+                |> Array.toList
             , fst maze.center
             , snd maze.center
             )
     in
         List.map
-            (\cell ->
-                drawCell cell.row
-                    cell.col
-                    cell.northLink
-                    cell.eastLink
-                    cell.southLink
-                    cell.westLink
-                    (centerX == cell.col && centerY == cell.row)
-                    mode
-                    blockSize
+            (\c ->
+                let
+                    col =
+                        fst c
+                            |> fst
+
+                    row =
+                        fst c
+                            |> snd
+
+                    cell =
+                        snd c
+                in
+                    drawCell col
+                        row
+                        cell.northLink
+                        cell.eastLink
+                        cell.southLink
+                        cell.westLink
+                        (centerX == col && centerY == row)
+                        mode
+                        blockSize
             )
             cells
 
 
 drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> S.Svg Msg
-drawCell row col north east south west isCenter mode blockSize =
+drawCell col row north east south west isCenter mode blockSize =
     let
         -- Translate for blockSize and 0 based Svg system.
         xs =
-            (col - 1) * blockSize
+            col * blockSize
 
         ys =
-            (row - 1) * blockSize
+            row * blockSize
 
         fillColor =
             "white"

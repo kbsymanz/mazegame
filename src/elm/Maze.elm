@@ -1,7 +1,6 @@
 module Maze exposing (..)
 
 import Array
-import Dict
 import Html.App as App
 import List.Zipper as Zipper exposing (Zipper)
 import Material
@@ -47,11 +46,12 @@ init =
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
     in
-        ( { mazes = Zipper.singleton <| createMaze mazeSize viewportSize
+        ( { mazes = Zipper.singleton <| createMaze mazeSize viewportSize 1
           , mazeMode = Viewing
           , mazeGenerate = MG.emptyModel
           , mdl = Material.model
           , keyboardModel = keyboardModel
+          , nextId = 2
           }
         , Cmd.map KeyboardExtraMsg keyboardCmd
         )
@@ -63,7 +63,8 @@ init =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case Debug.log "update" msg of
+    --case Debug.log "update" msg of
+    case msg of
         Mdl mdlMsg ->
             Material.update mdlMsg model
 
@@ -81,7 +82,7 @@ update msg model =
             -- Inserts the new maze after the current maze and makes it current.
             let
                 newMaze =
-                    createMaze 40 40
+                    createMaze 40 40 (model.nextId)
 
                 newMazes =
                     case
@@ -99,7 +100,7 @@ update msg model =
                             model.mazes
 
                 newModel =
-                    { model | mazes = newMazes }
+                    { model | mazes = newMazes, nextId = model.nextId + 1 }
             in
                 newModel ! []
 
@@ -232,11 +233,30 @@ update msg model =
                 ( mgModel, mgCmd ) =
                     MG.update mgMsg model.mazeGenerate
 
-                newMazes =
+                -- TODO: use this?
+                percComplete =
+                    round ((toFloat mgModel.currRow / toFloat mgModel.mazeSize) * 100)
+
+                currMazeId =
                     Zipper.current model.mazes
-                        |> (\m -> Zipper.update (always { m | cells = mgModel.cells }) model.mazes)
+                        |> .id
+
+                mgMazeId =
+                    Maybe.withDefault -1 mgModel.mazeId
+
+                newMazes =
+                    if mgMazeId == currMazeId then
+                        Zipper.current model.mazes
+                            |> (\m -> Zipper.update (always { m | cells = mgModel.cells }) model.mazes)
+                    else
+                        model.mazes
             in
-                ( { model | mazeGenerate = mgModel, mazes = newMazes }, Cmd.map (\m -> MazeGenerate m) mgCmd )
+                ( { model
+                    | mazeGenerate = mgModel
+                    , mazes = newMazes
+                  }
+                , Cmd.map (\m -> MazeGenerate m) mgCmd
+                )
 
 
 
