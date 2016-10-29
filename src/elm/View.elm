@@ -9,6 +9,7 @@ import Matrix
 import Material
 import Material.Button as Button
 import Material.Card as Card
+import Material.Chip as Chip
 import Material.Color as Color
 import Material.Grid as Grid exposing (grid, cell, size, Device(..))
 import Material.Layout as Layout
@@ -136,7 +137,7 @@ viewEditing model =
                             ]
                         ]
                     , cell
-                        -- Generate maze button.
+                        -- Generate maze button and percent complete.
                         [ size Desktop 12
                         , size Tablet 8
                         , size Phone 4
@@ -149,6 +150,10 @@ viewEditing model =
                             , Button.onClick <| MazeGenerate (MG.BinaryTreeInit currentMaze.mazeSize currentMaze.id)
                             ]
                             [ text "Generate the maze" ]
+                        , Chip.span []
+                            [ Chip.content []
+                                [ text <| (toString currentMaze.percComplete) ++ "%" ]
+                            ]
                         ]
                     , cell
                         -- Done editing button.

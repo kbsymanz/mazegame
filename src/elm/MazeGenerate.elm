@@ -41,6 +41,7 @@ type alias Model =
     , currRow : Int
     , status : MazeStatus
     , mazeId : Maybe Int
+    , percComplete : Int
     }
 
 
@@ -58,6 +59,7 @@ emptyModel =
     , currRow = 0
     , status = Empty
     , mazeId = Nothing
+    , percComplete = 0
     }
 
 
@@ -85,12 +87,13 @@ update msg model =
                 -- already processing another maze and have not processed this
                 -- one yet.
                 ( initializedModel, newCmd ) =
-                    if model.status == Empty then
+                    if model.status == Empty || model.status == Complete then
                         ( initModel
                             { emptyModel
                                 | mazeSize = size
                                 , status = InProcess
                                 , mazeId = Just mazeId
+                                , percComplete = 0
                             }
                         , Random.generate BinaryTreeUpdate Random.bool
                         )
@@ -103,8 +106,16 @@ update msg model =
             let
                 ( newModel, newCmd ) =
                     generateBinaryTree model bool
+
+                percComplete =
+                    newModel.mazeSize
+                        * newModel.mazeSize
+                        |> toFloat
+                        |> (/) ((toFloat (newModel.currRow * newModel.mazeSize)) + (toFloat newModel.currCol))
+                        |> (*) 100.0
+                        |> round
             in
-                newModel ! [ newCmd ]
+                { newModel | percComplete = percComplete } ! [ newCmd ]
 
         BinaryTreeDoRandom ->
             {- : Generate a random Bool for the BinaryTree algorithm. It is possible

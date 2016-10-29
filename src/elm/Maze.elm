@@ -233,10 +233,6 @@ update msg model =
                 ( mgModel, mgCmd ) =
                     MG.update mgMsg model.mazeGenerate
 
-                -- TODO: use this?
-                percComplete =
-                    round ((toFloat mgModel.currRow / toFloat mgModel.mazeSize) * 100)
-
                 currMazeId =
                     Zipper.current model.mazes
                         |> .id
@@ -247,7 +243,16 @@ update msg model =
                 newMazes =
                     if mgMazeId == currMazeId then
                         Zipper.current model.mazes
-                            |> (\m -> Zipper.update (always { m | cells = mgModel.cells }) model.mazes)
+                            |> (\m ->
+                                    Zipper.update
+                                        (always
+                                            { m
+                                                | cells = mgModel.cells
+                                                , percComplete = mgModel.percComplete
+                                            }
+                                        )
+                                        model.mazes
+                               )
                     else
                         model.mazes
             in

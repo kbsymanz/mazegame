@@ -36,6 +36,7 @@ type alias Maze =
     , center : ( Int, Int )
     , title : String
     , id : Int
+    , percComplete : Int
     }
 
 
@@ -53,6 +54,7 @@ createMaze gwSize dwSize id =
     , center = ( 10, 10 )
     , title = "Testing only"
     , id = id
+    , percComplete = 0
     }
 
 
