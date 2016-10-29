@@ -158,13 +158,19 @@ generateBinaryTree model bool =
         ( model1, isCompleted ) =
             case cell of
                 Just c ->
-                    if col == (model.mazeSize - 1) then
+                    if col == (model.mazeSize - 1) && row == (model.mazeSize - 1) then
+                        -- If last cell lower right, just advance.
+                        advanceByCell model
+                    else if col == (model.mazeSize - 1) then
+                        -- Last cell in row, only go south.
                         link col row c South model
                             |> advanceByCell
                     else if row == (model.mazeSize - 1) then
+                        -- Last row, only go east.
                         link col row c East model
                             |> advanceByCell
                     else
+                        -- Otherwise, randomly choose a direction.
                         link col
                             row
                             c
