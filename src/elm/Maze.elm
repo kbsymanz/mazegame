@@ -104,6 +104,30 @@ update msg model =
             in
                 newModel ! []
 
+        DeleteMaze idx ->
+            -- We can delete any maze except that we have to leave at least
+            -- one empty maze.
+            let
+                ( before, after ) =
+                    ( Zipper.before model.mazes, Zipper.after model.mazes )
+
+                newMazes =
+                    case ( List.isEmpty before, List.isEmpty after ) of
+                        ( _, False ) ->
+                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize viewportSize (model.nextId)) (List.head after))
+                                |> Zipper.updateBefore (always before)
+                                |> Zipper.updateAfter (always (List.drop 1 after))
+
+                        ( False, True ) ->
+                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize viewportSize (model.nextId)) (List.reverse before |> List.head))
+                                |> Zipper.updateBefore (always (List.take ((List.length before) - 1) before))
+                                |> Zipper.updateAfter (always [])
+
+                        ( True, True ) ->
+                            Zipper.singleton (createMaze mazeSize viewportSize (model.nextId))
+            in
+                { model | mazes = newMazes, nextId = model.nextId + 1 } ! []
+
         GoToPreviousMaze ->
             let
                 newMazes =

@@ -306,6 +306,14 @@ mazeToCell mdl idx maze isCurrentMaze =
                         , Button.onClick <| PlayMode Editing
                         ]
                         [ text "Edit" ]
+                    , Button.render Mdl
+                        [ 3, idx ]
+                        mdl
+                        [ Button.ripple
+                        , Button.colored
+                        , Button.onClick <| DeleteMaze idx
+                        ]
+                        [ text "Delete" ]
                     ]
                 ]
             ]
