@@ -5,15 +5,14 @@ import Material
 
 -- LOCAL IMPORTS
 
+import MazeGenerate as MG exposing (..)
 import Model exposing (..)
 import Keyboard.Extra as Keyboard
 
 
 type Msg
-    = Move Cell
-    | Click Int Int
-    | PlayMode Mode
-    | DisplayWindowSize Int
+    = PlayMode Mode
+    | ViewportSize Int
     | Mdl (Material.Msg Msg)
     | NewMaze
     | GoToNextMaze
@@ -21,3 +20,4 @@ type Msg
     | GoToMaze Int
     | SetTitle String
     | KeyboardExtraMsg Keyboard.Msg
+    | MazeGenerate MG.Msg

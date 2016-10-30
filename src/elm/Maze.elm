@@ -10,43 +10,35 @@ import Keyboard.Extra as Keyboard
 
 -- LOCAL IMPORTS
 
-import View as V
+import MazeGenerate as MG
 import Model
     exposing
         ( Model
         , Maze
         , Mode(..)
-        , Cell
         , createMaze
         )
 import Msg exposing (Msg(..))
+import View as V
 
 
 -- MODEL
 
 
 {-| The number of blocks the maze is horizontally and
-    vertically. Blocks are blockSize pixels in size each.
+    vertically.
 -}
-gameWindowSize : Int
-gameWindowSize =
+mazeSize : Int
+mazeSize =
     20
 
 
 {-| The number of blocks the user can currently see horizontally
-    and vertically. Blocks are blockSize pixels in size each.
+    and vertically.
 -}
-displayWindowSize : Int
-displayWindowSize =
-    20
-
-
-{-| The number of pixels that make up the width and height of
-    each block.
--}
-blockSize : Int
-blockSize =
-    40
+viewportSize : Int
+viewportSize =
+    60
 
 
 init : ( Model, Cmd Msg )
@@ -55,8 +47,9 @@ init =
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
     in
-        ( { mazes = Zipper.singleton <| createMaze blockSize gameWindowSize displayWindowSize
+        ( { mazes = Zipper.singleton <| createMaze mazeSize viewportSize
           , mazeMode = Viewing
+          , mazeGenerate = MG.emptyModel
           , mdl = Material.model
           , keyboardModel = keyboardModel
           }
@@ -71,50 +64,16 @@ init =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "update" msg of
-        Mdl msg' ->
-            Material.update msg' model
-
-        Move cell ->
-            let
-                newMazes =
-                    Zipper.update (\m -> { m | cells = (Dict.insert [ cell.x, cell.y ] cell m.cells) }) model.mazes
-            in
-                { model | mazes = newMazes } ! []
-
-        Click x y ->
-            -- Toggle whether the chosen cell is a wall or not.
-            let
-                currMaze =
-                    Zipper.current model.mazes
-
-                newMaze =
-                    case
-                        currMaze
-                            |> .cells
-                            |> Dict.get [ x, y ]
-                    of
-                        Just c ->
-                            { c | isWall = not c.isWall }
-                                |> (\c -> { currMaze | cells = (Dict.insert [ x, y ] c currMaze.cells) })
-
-                        Nothing ->
-                            currMaze
-
-                newMazes =
-                    Zipper.update (always newMaze) model.mazes
-            in
-                if model.mazeMode == Editing then
-                    { model | mazes = newMazes } ! []
-                else
-                    model ! []
+        Mdl mdlMsg ->
+            Material.update mdlMsg model
 
         PlayMode mode ->
             { model | mazeMode = mode } ! []
 
-        DisplayWindowSize size ->
+        ViewportSize size ->
             let
                 newMazes =
-                    Zipper.update (\m -> { m | displayWindowSize = size }) model.mazes
+                    Zipper.update (\m -> { m | viewportSize = size }) model.mazes
             in
                 { model | mazes = newMazes } ! []
 
@@ -122,7 +81,7 @@ update msg model =
             -- Inserts the new maze after the current maze and makes it current.
             let
                 newMaze =
-                    createMaze 10 40 20
+                    createMaze 40 40
 
                 newMazes =
                     case
@@ -216,34 +175,48 @@ update msg model =
                     .x arrows /= 0 || .y arrows /= 0
 
                 currentmaze =
-                        Zipper.current model.mazes
+                    Zipper.current model.mazes
 
-                center = currentmaze.center
+                center =
+                    currentmaze.center
 
                 newx =
                     case arrows.x of
-                            -1 ->
-                                if fst center > 0 then
-                                        (fst center) - 1
-                                else
-                                    fst center
-                            1 -> if (fst center) > currentmaze.gameWindowSize then
-                                    fst center
-                                 else (fst center) + 1
-                            _ -> fst center
+                        -1 ->
+                            if fst center > 0 then
+                                (fst center) - 1
+                            else
+                                fst center
+
+                        1 ->
+                            if (fst center) > currentmaze.mazeSize then
+                                fst center
+                            else
+                                (fst center) + 1
+
+                        _ ->
+                            fst center
+
                 newy =
                     case arrows.y of
-                            -1 ->
-                                if snd center > 0 then
-                                    (snd center) - 1
-                                else
-                                    snd center
-                            1 -> if (snd center) > currentmaze.gameWindowSize then
-                                    snd center
-                                 else (snd center) + 1
-                            _ -> snd center
+                        -1 ->
+                            if snd center > 0 then
+                                (snd center) - 1
+                            else
+                                snd center
+
+                        1 ->
+                            if (snd center) > currentmaze.mazeSize then
+                                snd center
+                            else
+                                (snd center) + 1
+
+                        _ ->
+                            snd center
+
                 updatedMazes =
-                    Zipper.update (\m -> { m | center = (newx,newy)}) model.mazes
+                    Zipper.update (\m -> { m | center = ( newx, newy ) }) model.mazes
+
                 _ =
                     Debug.log "keyboardExtraMsg, hello, this is cool" isarrows
             in
@@ -254,7 +227,16 @@ update msg model =
                 , Cmd.map KeyboardExtraMsg keyboardCmd
                 )
 
+        MazeGenerate mgMsg ->
+            let
+                ( mgModel, mgCmd ) =
+                    MG.update mgMsg model.mazeGenerate
 
+                newMazes =
+                    Zipper.current model.mazes
+                        |> (\m -> Zipper.update (always { m | cells = mgModel.cells }) model.mazes)
+            in
+                ( { model | mazeGenerate = mgModel, mazes = newMazes }, Cmd.map (\m -> MazeGenerate m) mgCmd )
 
 
 
