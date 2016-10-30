@@ -201,7 +201,7 @@ update msg model =
                     case arrows.y of
                         -1 ->
                             if snd center > 0 then
-                                (snd center) - 1
+                                (snd center) + 1
                             else
                                 snd center
 
@@ -209,7 +209,7 @@ update msg model =
                             if (snd center) > currentmaze.mazeSize then
                                 snd center
                             else
-                                (snd center) + 1
+                                (snd center) - 1
 
                         _ ->
                             snd center
