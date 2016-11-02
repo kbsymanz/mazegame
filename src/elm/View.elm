@@ -311,6 +311,7 @@ mazeToCell mdl idx maze isCurrentMaze =
                         mdl
                         [ Button.ripple
                         , Button.colored
+                        , Options.css "float" "right"
                         , Button.onClick <| DeleteMaze idx
                         ]
                         [ text "Delete" ]
@@ -347,7 +348,7 @@ viewMaze model =
                     ( 300, 300 // maze.mazeSize )
 
                 Editing ->
-                    ( 500, 500 // maze.mazeSize )
+                    ( 600, 500 // maze.mazeSize )
 
                 Playing ->
                     ( 400, 400 // maze.mazeSize )
@@ -390,7 +391,7 @@ background model blockSize =
             [ S.rect
                 [ S.width (intToPx wh)
                 , S.height (intToPx wh)
-                , S.fill "lightgrey"
+                , S.fill "white"
                 ]
                 []
             ]

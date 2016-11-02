@@ -2,10 +2,16 @@ module MazeGenerate
     exposing
         ( Msg(..)
         , MazeStatus(..)
+        , Direction(..)
         , Model
+        , Cell
         , emptyModel
         , update
-        , Cell
+        , initModel
+          -- The functions below are exposed for testing purposes only.
+        , advanceByCell
+        , generateBinaryTree
+        , link
         )
 
 import Matrix exposing (Matrix)
@@ -136,9 +142,6 @@ initModel model =
     let
         matrix =
             Matrix.repeat model.mazeSize model.mazeSize (Cell False False False False)
-
-        _ =
-            Debug.log "initModel" ("Height: " ++ (toString (Matrix.height matrix)) ++ ", Width: " ++ (toString (Matrix.width matrix)))
     in
         { model | cells = matrix }
 
@@ -158,28 +161,30 @@ generateBinaryTree model bool =
         ( model1, isCompleted ) =
             case cell of
                 Just c ->
-                    if col == (model.mazeSize - 1) && row == (model.mazeSize - 1) then
-                        -- If last cell lower right, just advance.
-                        advanceByCell model
+                    if row /= (model.mazeSize - 1) then
+                        -- Not the last row.
+                        if col == (model.mazeSize - 1) then
+                            -- Last column of row, only go south.
+                            link col row c South model
+                                |> advanceByCell
+                        else
+                            -- Otherwise, randomly choose a direction.
+                            link col
+                                row
+                                c
+                                (if bool then
+                                    East
+                                 else
+                                    South
+                                )
+                                model
+                                |> advanceByCell
                     else if col == (model.mazeSize - 1) then
-                        -- Last cell in row, only go south.
-                        link col row c South model
-                            |> advanceByCell
-                    else if row == (model.mazeSize - 1) then
-                        -- Last row, only go east.
-                        link col row c East model
-                            |> advanceByCell
+                        -- Last cell of last row.
+                        ( model, True )
                     else
-                        -- Otherwise, randomly choose a direction.
-                        link col
-                            row
-                            c
-                            (if bool then
-                                East
-                             else
-                                South
-                            )
-                            model
+                        -- Last row but not last cell, only go east.
+                        link col row c East model
                             |> advanceByCell
 
                 Nothing ->
@@ -209,7 +214,7 @@ generateBinaryTree model bool =
 
 
 {-| Advance the currCol and currRow fields of the model by cell moving by
-    row and then cell within row ascending. Return True in the second element
+    cell within row then by row ascending. Return True in the second element
     of the tuple to signify completion.
 -}
 advanceByCell : Model -> ( Model, Bool )
@@ -219,9 +224,9 @@ advanceByCell model =
             ( model.currCol, model.currRow )
 
         ( newModel, isCompleted ) =
-            if row /= model.mazeSize then
+            if row /= (model.mazeSize - 1) then
                 if col == (model.mazeSize - 1) then
-                    ( { model | currCol = 1, currRow = row + 1 }, False )
+                    ( { model | currCol = 0, currRow = row + 1 }, False )
                 else
                     ( { model | currCol = col + 1 }, False )
             else if col /= (model.mazeSize - 1) then
@@ -244,11 +249,8 @@ link col row cell direction model =
             case direction of
                 North ->
                     let
-                        linkedCol =
-                            col
-
-                        linkedRow =
-                            max 0 (row - 1)
+                        ( linkedCol, linkedRow ) =
+                            ( col, row - 1 )
                     in
                         ( { cell | northLink = True }
                         , case Matrix.get linkedCol linkedRow model.cells of
@@ -263,11 +265,8 @@ link col row cell direction model =
 
                 East ->
                     let
-                        linkedCol =
-                            min model.mazeSize (col + 1)
-
-                        linkedRow =
-                            row
+                        ( linkedCol, linkedRow ) =
+                            ( col + 1, row )
                     in
                         ( { cell | eastLink = True }
                         , case Matrix.get linkedCol linkedRow model.cells of
@@ -282,11 +281,8 @@ link col row cell direction model =
 
                 South ->
                     let
-                        linkedCol =
-                            col
-
-                        linkedRow =
-                            min model.mazeSize (row + 1)
+                        ( linkedCol, linkedRow ) =
+                            ( col, row + 1 )
                     in
                         ( { cell | southLink = True }
                         , case Matrix.get linkedCol linkedRow model.cells of
@@ -301,11 +297,8 @@ link col row cell direction model =
 
                 West ->
                     let
-                        linkedCol =
-                            min 0 (col - 1)
-
-                        linkedRow =
-                            row
+                        ( linkedCol, linkedRow ) =
+                            ( col - 1, row )
                     in
                         ( { cell | westLink = True }
                         , case Matrix.get linkedCol linkedRow model.cells of
@@ -326,10 +319,10 @@ link col row cell direction model =
                         row
                         (\c ->
                             { c
-                                | northLink = updatedCell.eastLink
+                                | northLink = updatedCell.northLink
                                 , eastLink = updatedCell.eastLink
                                 , southLink = updatedCell.southLink
-                                , westLink = updatedCell.southLink
+                                , westLink = updatedCell.westLink
                             }
                         )
                         model.cells
@@ -340,7 +333,7 @@ link col row cell direction model =
                                     | northLink = c2.northLink
                                     , eastLink = c2.eastLink
                                     , southLink = c2.southLink
-                                    , westLink = c2.southLink
+                                    , westLink = c2.westLink
                                 }
                             )
 
@@ -352,7 +345,7 @@ link col row cell direction model =
                                 | northLink = updatedCell.northLink
                                 , eastLink = updatedCell.eastLink
                                 , southLink = updatedCell.southLink
-                                , westLink = updatedCell.southLink
+                                , westLink = updatedCell.westLink
                             }
                         )
                         model.cells
