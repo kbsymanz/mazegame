@@ -209,21 +209,21 @@ update msg model =
                     currentmaze.mazeSize
 
                 centery =
-                        snd center
+                    snd center
 
                 centerx =
-                        fst center
+                    fst center
 
                 newx =
                     case arrows.x of
                         -1 ->
-                            if centerx > 1 then
+                            if centerx > 0 then
                                 centerx - 1
                             else
                                 centerx
 
                         1 ->
-                            if centerx == ms then
+                            if centerx == ms - 1 then
                                 centerx
                             else
                                 centerx + 1
@@ -235,14 +235,14 @@ update msg model =
                     case arrows.y of
                         -1 ->
                             -- down arrow
-                            if centery < ms then
+                            if centery < ms - 1 then
                                 centery + 1
                             else
                                 centery
 
                         1 ->
                             -- up arrow
-                            if centery == 1 then
+                            if centery == 0 then
                                 centery
                             else
                                 centery - 1
@@ -252,7 +252,6 @@ update msg model =
 
                 updatedMazes =
                     Zipper.update (\m -> { m | center = ( newx, newy ) }) model.mazes
-
             in
                 if model.mazeMode == Playing then
                     ( { model
@@ -261,7 +260,8 @@ update msg model =
                       }
                     , Cmd.map KeyboardExtraMsg keyboardCmd
                     )
-                else model ! []
+                else
+                    model ! []
 
         MazeGenerate mgMsg ->
             let
