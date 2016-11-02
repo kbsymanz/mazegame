@@ -1,13 +1,20 @@
 module MazeGenerate
     exposing
         ( Msg(..)
+        , MazeStatus(..)
+        , Direction(..)
         , Model
+        , Cell
         , emptyModel
         , update
-        , Cell
+        , initModel
+          -- The functions below are exposed for testing purposes only.
+        , advanceByCell
+        , generateBinaryTree
+        , link
         )
 
-import Dict
+import Matrix exposing (Matrix)
 import Process
 import Random
 import Task
@@ -28,33 +35,42 @@ type Direction
    To Do:
    6. Add tests.
    7. Go through all code and standardize on north or top, etc.
-   9. Create a random exit on the maze at the end.
-   10. Do the Sidewinder algorithm.
+   10. Do the Sidewinder algorithm or one of the other ones.
    11. Turn the whole thing into a package.
 -}
 
 
 type alias Model =
-    { cells : Dict.Dict (List Int) Cell
+    { cells : Matrix Cell
     , mazeSize : Int
     , currCol : Int
     , currRow : Int
+    , status : MazeStatus
+    , mazeId : Maybe Int
+    , percComplete : Int
     }
+
+
+type MazeStatus
+    = Empty
+    | InProcess
+    | Complete
 
 
 emptyModel : Model
 emptyModel =
-    { cells = Dict.empty
+    { cells = Matrix.empty
     , mazeSize = 10
-    , currCol = 1
-    , currRow = 1
+    , currCol = 0
+    , currRow = 0
+    , status = Empty
+    , mazeId = Nothing
+    , percComplete = 0
     }
 
 
 type alias Cell =
-    { col : Int
-    , row : Int
-    , northLink : Bool
+    { northLink : Bool
     , eastLink : Bool
     , southLink : Bool
     , westLink : Bool
@@ -62,7 +78,7 @@ type alias Cell =
 
 
 type Msg
-    = BinaryTreeInit Int
+    = BinaryTreeInit Int Int
     | BinaryTreeUpdate Bool
     | BinaryTreeDoRandom
     | BinaryTreeComplete
@@ -71,15 +87,24 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        BinaryTreeInit size ->
+        BinaryTreeInit size mazeId ->
             let
-                -- Initialize the cells to the proper size.
-                initializedModel =
-                    initModel { emptyModel | mazeSize = size }
-
-                -- Start the process of stepping through the maze generation.
-                newCmd =
-                    Random.generate BinaryTreeUpdate Random.bool
+                -- Initialize the cells to the proper size but only if we are not
+                -- already processing another maze and have not processed this
+                -- one yet.
+                ( initializedModel, newCmd ) =
+                    if model.status == Empty || model.status == Complete then
+                        ( initModel
+                            { emptyModel
+                                | mazeSize = size
+                                , status = InProcess
+                                , mazeId = Just mazeId
+                                , percComplete = 0
+                            }
+                        , Random.generate BinaryTreeUpdate Random.bool
+                        )
+                    else
+                        ( model, Cmd.none )
             in
                 initializedModel ! [ newCmd ]
 
@@ -87,8 +112,16 @@ update msg model =
             let
                 ( newModel, newCmd ) =
                     generateBinaryTree model bool
+
+                percComplete =
+                    newModel.mazeSize
+                        * newModel.mazeSize
+                        |> toFloat
+                        |> (/) ((toFloat (newModel.currRow * newModel.mazeSize)) + (toFloat newModel.currCol))
+                        |> (*) 100.0
+                        |> round
             in
-                newModel ! [ newCmd ]
+                { newModel | percComplete = percComplete } ! [ newCmd ]
 
         BinaryTreeDoRandom ->
             {- : Generate a random Bool for the BinaryTree algorithm. It is possible
@@ -107,19 +140,10 @@ update msg model =
 initModel : Model -> Model
 initModel model =
     let
-        -- top, left, right, bottom as a List
-        outerWall =
-            List.map (\x -> ( [ x, 1 ], Cell x 1 False False False False )) [1..model.mazeSize]
-                ++ List.map (\x -> ( [ 1, x ], Cell 1 x False False False False )) [1..model.mazeSize]
-                ++ List.map (\x -> ( [ model.mazeSize, x ], Cell model.mazeSize x False False False False )) [1..model.mazeSize]
-                ++ List.map (\x -> ( [ x, model.mazeSize ], Cell x model.mazeSize False False False False )) [1..model.mazeSize]
-
-        -- All cells not on the edge.
-        inner =
-            List.map (\x -> List.map (\y -> ( [ x, y ], Cell x y False False False False )) [2..(model.mazeSize - 1)]) [2..(model.mazeSize - 1)]
-                |> List.concat
+        matrix =
+            Matrix.repeat model.mazeSize model.mazeSize (Cell False False False False)
     in
-        { model | cells = Dict.fromList (outerWall ++ inner) }
+        { model | cells = matrix }
 
 
 {-| Generate a single step of the maze using the Binary Tree algorithm. Returns the
@@ -132,36 +156,54 @@ generateBinaryTree model bool =
             ( model.currCol, model.currRow )
 
         cell =
-            Dict.get [ col, row ] model.cells
+            Matrix.get col row model.cells
 
-        ( newModel, isCompleted ) =
+        ( model1, isCompleted ) =
             case cell of
                 Just c ->
-                    if col == model.mazeSize then
-                        link c South model
-                            |> advanceByCell
-                    else if row == model.mazeSize then
-                        link c East model
-                            |> advanceByCell
+                    if row /= (model.mazeSize - 1) then
+                        -- Not the last row.
+                        if col == (model.mazeSize - 1) then
+                            -- Last column of row, only go south.
+                            link col row c South model
+                                |> advanceByCell
+                        else
+                            -- Otherwise, randomly choose a direction.
+                            link col
+                                row
+                                c
+                                (if bool then
+                                    East
+                                 else
+                                    South
+                                )
+                                model
+                                |> advanceByCell
+                    else if col == (model.mazeSize - 1) then
+                        -- Last cell of last row.
+                        ( model, True )
                     else
-                        link c
-                            (if bool then
-                                East
-                             else
-                                South
-                            )
-                            model
+                        -- Last row but not last cell, only go east.
+                        link col row c East model
                             |> advanceByCell
 
                 Nothing ->
                     -- If we get here, something is wrong.
                     ( model, True )
 
+        newModel =
+            if isCompleted then
+                { model1 | status = Complete }
+            else
+                model1
+
         newCmd =
             if isCompleted then
                 Task.perform (always BinaryTreeComplete) (always BinaryTreeComplete) (Task.succeed True)
             else
-                {- : Do this to skip the sleep altogether. This is fastest but it ties up the UI. -}
+                {- : Do this to skip the sleep altogether. This is about three
+                   times faster but it ties up the UI.
+                -}
                 --Random.generate BinaryTreeUpdate Random.bool
                 {- : Here we sleep to avoid locking up the screen. The BinaryTreeDoRandom case in
                    update will perform the actual random Bool generation.
@@ -172,7 +214,7 @@ generateBinaryTree model bool =
 
 
 {-| Advance the currCol and currRow fields of the model by cell moving by
-    row and then cell within row ascending. Return True in the second element
+    cell within row then by row ascending. Return True in the second element
     of the tuple to signify completion.
 -}
 advanceByCell : Model -> ( Model, Bool )
@@ -182,12 +224,12 @@ advanceByCell model =
             ( model.currCol, model.currRow )
 
         ( newModel, isCompleted ) =
-            if row /= model.mazeSize then
-                if col == model.mazeSize then
-                    ( { model | currCol = 1, currRow = row + 1 }, False )
+            if row /= (model.mazeSize - 1) then
+                if col == (model.mazeSize - 1) then
+                    ( { model | currCol = 0, currRow = row + 1 }, False )
                 else
                     ( { model | currCol = col + 1 }, False )
-            else if col /= model.mazeSize then
+            else if col /= (model.mazeSize - 1) then
                 ( { model | currCol = col + 1 }, False )
             else
                 ( model, True )
@@ -198,61 +240,114 @@ advanceByCell model =
 {-| "Link" two cells by setting the link field on their facing walls to True.
     Linked cells do not have a wall between them.
 -}
-link : Cell -> Direction -> Model -> Model
-link cell direction model =
+link : Int -> Int -> Cell -> Direction -> Model -> Model
+link col row cell direction model =
     let
         -- Set the directional link in the cell passed and the corresponding cell
         -- if there is one (cells on a border may not have one).
-        ( updatedCell, linkedCell ) =
+        ( updatedCell, linkedCell, linkedCol, linkedRow ) =
             case direction of
                 North ->
-                    ( { cell | northLink = True }
-                    , case Dict.get [ cell.col, max 0 (cell.row - 1) ] model.cells of
-                        Nothing ->
-                            Nothing
+                    let
+                        ( linkedCol, linkedRow ) =
+                            ( col, row - 1 )
+                    in
+                        ( { cell | northLink = True }
+                        , case Matrix.get linkedCol linkedRow model.cells of
+                            Nothing ->
+                                Nothing
 
-                        Just c ->
-                            Just { c | southLink = True }
-                    )
+                            Just c ->
+                                Just { c | southLink = True }
+                        , linkedCol
+                        , linkedRow
+                        )
 
                 East ->
-                    ( { cell | eastLink = True }
-                    , case Dict.get [ min model.mazeSize (cell.col + 1), cell.row ] model.cells of
-                        Nothing ->
-                            Nothing
+                    let
+                        ( linkedCol, linkedRow ) =
+                            ( col + 1, row )
+                    in
+                        ( { cell | eastLink = True }
+                        , case Matrix.get linkedCol linkedRow model.cells of
+                            Nothing ->
+                                Nothing
 
-                        Just c ->
-                            Just { c | westLink = True }
-                    )
+                            Just c ->
+                                Just { c | westLink = True }
+                        , linkedCol
+                        , linkedRow
+                        )
 
                 South ->
-                    ( { cell | southLink = True }
-                    , case Dict.get [ cell.col, min model.mazeSize (cell.row + 1) ] model.cells of
-                        Nothing ->
-                            Nothing
+                    let
+                        ( linkedCol, linkedRow ) =
+                            ( col, row + 1 )
+                    in
+                        ( { cell | southLink = True }
+                        , case Matrix.get linkedCol linkedRow model.cells of
+                            Nothing ->
+                                Nothing
 
-                        Just c ->
-                            Just { c | northLink = True }
-                    )
+                            Just c ->
+                                Just { c | northLink = True }
+                        , linkedCol
+                        , linkedRow
+                        )
 
                 West ->
-                    ( { cell | westLink = True }
-                    , case Dict.get [ min 0 (cell.col - 1), cell.row ] model.cells of
-                        Nothing ->
-                            Nothing
+                    let
+                        ( linkedCol, linkedRow ) =
+                            ( col - 1, row )
+                    in
+                        ( { cell | westLink = True }
+                        , case Matrix.get linkedCol linkedRow model.cells of
+                            Nothing ->
+                                Nothing
 
-                        Just c ->
-                            Just { c | eastLink = True }
-                    )
+                            Just c ->
+                                Just { c | eastLink = True }
+                        , linkedCol
+                        , linkedRow
+                        )
 
         -- Create a new set of cells with the updated cell and possibly the linked cell.
         newCells =
             case linkedCell of
                 Just c2 ->
-                    Dict.insert [ updatedCell.col, updatedCell.row ] updatedCell model.cells
-                        |> Dict.insert [ c2.col, c2.row ] c2
+                    Matrix.update col
+                        row
+                        (\c ->
+                            { c
+                                | northLink = updatedCell.northLink
+                                , eastLink = updatedCell.eastLink
+                                , southLink = updatedCell.southLink
+                                , westLink = updatedCell.westLink
+                            }
+                        )
+                        model.cells
+                        |> Matrix.update linkedCol
+                            linkedRow
+                            (\c ->
+                                { c
+                                    | northLink = c2.northLink
+                                    , eastLink = c2.eastLink
+                                    , southLink = c2.southLink
+                                    , westLink = c2.westLink
+                                }
+                            )
 
                 Nothing ->
-                    Dict.insert [ updatedCell.col, updatedCell.row ] updatedCell model.cells
+                    Matrix.update col
+                        row
+                        (\c ->
+                            { c
+                                | northLink = updatedCell.northLink
+                                , eastLink = updatedCell.eastLink
+                                , southLink = updatedCell.southLink
+                                , westLink = updatedCell.westLink
+                            }
+                        )
+                        model.cells
     in
         { model | cells = newCells }

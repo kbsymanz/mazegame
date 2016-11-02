@@ -15,6 +15,7 @@ type Msg
     | ViewportSize Int
     | Mdl (Material.Msg Msg)
     | NewMaze
+    | DeleteMaze Int
     | GoToNextMaze
     | GoToPreviousMaze
     | GoToMaze Int

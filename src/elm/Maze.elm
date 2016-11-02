@@ -1,7 +1,6 @@
 module Maze exposing (..)
 
 import Array
-import Dict
 import Html.App as App
 import List.Zipper as Zipper exposing (Zipper)
 import Material
@@ -47,11 +46,12 @@ init =
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
     in
-        ( { mazes = Zipper.singleton <| createMaze mazeSize viewportSize
+        ( { mazes = Zipper.singleton <| createMaze mazeSize viewportSize 1
           , mazeMode = Viewing
           , mazeGenerate = MG.emptyModel
           , mdl = Material.model
           , keyboardModel = keyboardModel
+          , nextId = 2
           }
         , Cmd.map KeyboardExtraMsg keyboardCmd
         )
@@ -63,7 +63,8 @@ init =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case Debug.log "update" msg of
+    --case Debug.log "update" msg of
+    case msg of
         Mdl mdlMsg ->
             Material.update mdlMsg model
 
@@ -81,7 +82,7 @@ update msg model =
             -- Inserts the new maze after the current maze and makes it current.
             let
                 newMaze =
-                    createMaze 40 40
+                    createMaze 40 40 (model.nextId)
 
                 newMazes =
                     case
@@ -99,9 +100,33 @@ update msg model =
                             model.mazes
 
                 newModel =
-                    { model | mazes = newMazes }
+                    { model | mazes = newMazes, nextId = model.nextId + 1 }
             in
                 newModel ! []
+
+        DeleteMaze idx ->
+            -- We can delete any maze except that we have to leave at least
+            -- one empty maze.
+            let
+                ( before, after ) =
+                    ( Zipper.before model.mazes, Zipper.after model.mazes )
+
+                newMazes =
+                    case ( List.isEmpty before, List.isEmpty after ) of
+                        ( _, False ) ->
+                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize viewportSize (model.nextId)) (List.head after))
+                                |> Zipper.updateBefore (always before)
+                                |> Zipper.updateAfter (always (List.drop 1 after))
+
+                        ( False, True ) ->
+                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize viewportSize (model.nextId)) (List.reverse before |> List.head))
+                                |> Zipper.updateBefore (always (List.take ((List.length before) - 1) before))
+                                |> Zipper.updateAfter (always [])
+
+                        ( True, True ) ->
+                            Zipper.singleton (createMaze mazeSize viewportSize (model.nextId))
+            in
+                { model | mazes = newMazes, nextId = model.nextId + 1 } ! []
 
         GoToPreviousMaze ->
             let
@@ -184,21 +209,21 @@ update msg model =
                     currentmaze.mazeSize
 
                 centery =
-                        snd center
+                    snd center
 
                 centerx =
-                        fst center
+                    fst center
 
                 newx =
                     case arrows.x of
                         -1 ->
-                            if centerx > 1 then
+                            if centerx > 0 then
                                 centerx - 1
                             else
                                 centerx
 
                         1 ->
-                            if centerx == ms then
+                            if centerx == ms - 1 then
                                 centerx
                             else
                                 centerx + 1
@@ -210,14 +235,14 @@ update msg model =
                     case arrows.y of
                         -1 ->
                             -- down arrow
-                            if centery < ms then
+                            if centery < ms - 1 then
                                 centery + 1
                             else
                                 centery
 
                         1 ->
                             -- up arrow
-                            if centery == 1 then
+                            if centery == 0 then
                                 centery
                             else
                                 centery - 1
@@ -227,7 +252,6 @@ update msg model =
 
                 updatedMazes =
                     Zipper.update (\m -> { m | center = ( newx, newy ) }) model.mazes
-
             in
                 if model.mazeMode == Playing then
                     ( { model
@@ -236,18 +260,43 @@ update msg model =
                       }
                     , Cmd.map KeyboardExtraMsg keyboardCmd
                     )
-                else model ! []
+                else
+                    model ! []
 
         MazeGenerate mgMsg ->
             let
                 ( mgModel, mgCmd ) =
                     MG.update mgMsg model.mazeGenerate
 
-                newMazes =
+                currMazeId =
                     Zipper.current model.mazes
-                        |> (\m -> Zipper.update (always { m | cells = mgModel.cells }) model.mazes)
+                        |> .id
+
+                mgMazeId =
+                    Maybe.withDefault -1 mgModel.mazeId
+
+                newMazes =
+                    if mgMazeId == currMazeId then
+                        Zipper.current model.mazes
+                            |> (\m ->
+                                    Zipper.update
+                                        (always
+                                            { m
+                                                | cells = mgModel.cells
+                                                , percComplete = mgModel.percComplete
+                                            }
+                                        )
+                                        model.mazes
+                               )
+                    else
+                        model.mazes
             in
-                ( { model | mazeGenerate = mgModel, mazes = newMazes }, Cmd.map (\m -> MazeGenerate m) mgCmd )
+                ( { model
+                    | mazeGenerate = mgModel
+                    , mazes = newMazes
+                  }
+                , Cmd.map (\m -> MazeGenerate m) mgCmd
+                )
 
 
 
