@@ -180,52 +180,63 @@ update msg model =
                 center =
                     currentmaze.center
 
+                ms =
+                    currentmaze.mazeSize
+
+                centery =
+                        snd center
+
+                centerx =
+                        fst center
+
                 newx =
                     case arrows.x of
                         -1 ->
-                            if fst center > 0 then
-                                (fst center) - 1
+                            if centerx > 1 then
+                                centerx - 1
                             else
-                                fst center
+                                centerx
 
                         1 ->
-                            if (fst center) > currentmaze.mazeSize then
-                                fst center
+                            if centerx == ms then
+                                centerx
                             else
-                                (fst center) + 1
+                                centerx + 1
 
                         _ ->
-                            fst center
+                            centerx
 
                 newy =
                     case arrows.y of
                         -1 ->
-                            if snd center > 0 then
-                                (snd center) + 1
+                            -- down arrow
+                            if centery < ms then
+                                centery + 1
                             else
-                                snd center
+                                centery
 
                         1 ->
-                            if (snd center) > currentmaze.mazeSize then
-                                snd center
+                            -- up arrow
+                            if centery == 1 then
+                                centery
                             else
-                                (snd center) - 1
+                                centery - 1
 
                         _ ->
-                            snd center
+                            centery
 
                 updatedMazes =
                     Zipper.update (\m -> { m | center = ( newx, newy ) }) model.mazes
 
-                _ =
-                    Debug.log "keyboardExtraMsg, hello, this is cool" isarrows
             in
-                ( { model
-                    | keyboardModel = keyboardModel
-                    , mazes = updatedMazes
-                  }
-                , Cmd.map KeyboardExtraMsg keyboardCmd
-                )
+                if model.mazeMode == Playing then
+                    ( { model
+                        | keyboardModel = keyboardModel
+                        , mazes = updatedMazes
+                      }
+                    , Cmd.map KeyboardExtraMsg keyboardCmd
+                    )
+                else model ! []
 
         MazeGenerate mgMsg ->
             let
