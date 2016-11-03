@@ -66,6 +66,11 @@ viewEditingContext =
     1
 
 
+viewPlayingContext : Int
+viewPlayingContext =
+    2
+
+
 view : Model -> Html Msg
 view model =
     Layout.render Mdl
@@ -91,9 +96,49 @@ viewMain model =
                     viewEditing model
 
                 Playing ->
-                    viewViewing model
+                    viewPlaying model
     in
         view
+
+
+viewPlaying : Model -> Html Msg
+viewPlaying model =
+    let
+        ( mazesList, currMazeIdx ) =
+            ( Zipper.toList model.mazes
+            , Zipper.before model.mazes
+                |> List.length
+            )
+
+        mazes =
+            List.indexedMap (\idx maze -> mazeToCell model.mdl idx maze (idx == currMazeIdx)) mazesList
+    in
+        grid
+            [ Color.background <| Color.accentContrast
+            ]
+            [ cell
+                -- Maze on the left.
+                [ size Desktop 10
+                , size Tablet 7
+                , size Phone 4
+                ]
+                <| [ viewMaze model ]
+            , cell
+                -- Done Playing button.
+                [ size Desktop 2
+                , size Tablet 1
+                , size Phone 4
+                ]
+                [ Button.render Mdl
+                    [ viewPlayingContext, 0 ]
+                    model.mdl
+                    [ Button.ripple
+                    , Button.colored
+                    , Button.onClick <| PlayMode Viewing
+                    ]
+                    [ text "Done Playing" ]
+                ]
+            ]
 
 
 viewEditing : Model -> Html Msg
@@ -348,13 +393,16 @@ viewMaze model =
                     ( 300, 300 // maze.mazeSize )
 
                 Editing ->
-                    ( 600, 500 // maze.mazeSize )
+                    ( 600, 600 // maze.mazeSize )
 
                 Playing ->
-                    ( 400, 400 // maze.mazeSize )
+                    ( 800, 800 // maze.mazeSize )
 
         ( viewportSize, x, y ) =
-            ( maze.viewportSize
+            ( if model.mazeMode == Playing then
+                maze.viewportSize
+              else
+                maze.mazeSize
             , fst maze.center
             , snd maze.center
             )
