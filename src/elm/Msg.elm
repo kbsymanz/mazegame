@@ -12,7 +12,7 @@ import Keyboard.Extra as Keyboard
 
 type Msg
     = PlayMode Mode
-    | ViewportSize Int
+    | MazeDifficulty Difficulty
     | Mdl (Material.Msg Msg)
     | NewMaze
     | DeleteMaze Int

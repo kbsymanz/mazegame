@@ -15,6 +15,7 @@ import Model
         ( Model
         , Maze
         , Mode(..)
+        , Difficulty(..)
         , createMaze
         )
 import Msg exposing (Msg(..))
@@ -32,22 +33,15 @@ mazeSize =
     20
 
 
-{-| The number of blocks the user can currently see horizontally
-    and vertically.
--}
-viewportSize : Int
-viewportSize =
-    60
-
-
 init : ( Model, Cmd Msg )
 init =
     let
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
     in
-        ( { mazes = Zipper.singleton <| createMaze mazeSize viewportSize 1
+        ( { mazes = Zipper.singleton <| createMaze mazeSize 1
           , mazeMode = Viewing
+          , mazeDifficulty = Easy
           , mazeGenerate = MG.emptyModel
           , mdl = Material.model
           , keyboardModel = keyboardModel
@@ -71,18 +65,14 @@ update msg model =
         PlayMode mode ->
             { model | mazeMode = mode } ! []
 
-        ViewportSize size ->
-            let
-                newMazes =
-                    Zipper.update (\m -> { m | viewportSize = size }) model.mazes
-            in
-                { model | mazes = newMazes } ! []
+        MazeDifficulty diff ->
+            { model | mazeDifficulty = diff } ! []
 
         NewMaze ->
             -- Inserts the new maze after the current maze and makes it current.
             let
                 newMaze =
-                    createMaze 40 40 (model.nextId)
+                    createMaze 40 (model.nextId)
 
                 newMazes =
                     case
@@ -114,17 +104,17 @@ update msg model =
                 newMazes =
                     case ( List.isEmpty before, List.isEmpty after ) of
                         ( _, False ) ->
-                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize viewportSize (model.nextId)) (List.head after))
+                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize (model.nextId)) (List.head after))
                                 |> Zipper.updateBefore (always before)
                                 |> Zipper.updateAfter (always (List.drop 1 after))
 
                         ( False, True ) ->
-                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize viewportSize (model.nextId)) (List.reverse before |> List.head))
+                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize (model.nextId)) (List.reverse before |> List.head))
                                 |> Zipper.updateBefore (always (List.take ((List.length before) - 1) before))
                                 |> Zipper.updateAfter (always [])
 
                         ( True, True ) ->
-                            Zipper.singleton (createMaze mazeSize viewportSize (model.nextId))
+                            Zipper.singleton (createMaze mazeSize (model.nextId))
             in
                 { model | mazes = newMazes, nextId = model.nextId + 1 } ! []
 

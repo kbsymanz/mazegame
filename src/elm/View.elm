@@ -15,6 +15,7 @@ import Material.Grid as Grid exposing (grid, cell, size, Device(..))
 import Material.Layout as Layout
 import Material.Options as Options
 import Material.Textfield as Textfield
+import Material.Toggles as Toggles
 import Material.Typography as Typo
 import Svg as S
 import Svg.Attributes as S
@@ -28,6 +29,7 @@ import Model
         ( Model
         , Maze
         , Mode(..)
+        , Difficulty(..)
         )
 import Msg exposing (..)
 
@@ -71,6 +73,11 @@ viewPlayingContext =
     2
 
 
+mazeMetaInfoContext : Int
+mazeMetaInfoContext =
+    3
+
+
 view : Model -> Html Msg
 view model =
     Layout.render Mdl
@@ -109,9 +116,6 @@ viewPlaying model =
             , Zipper.before model.mazes
                 |> List.length
             )
-
-        mazes =
-            List.indexedMap (\idx maze -> mazeToCell model.mdl idx maze (idx == currMazeIdx)) mazesList
     in
         grid
             [ Color.background <| Color.accentContrast
@@ -230,7 +234,7 @@ viewViewing model =
             )
 
         mazes =
-            List.indexedMap (\idx maze -> mazeToCell model.mdl idx maze (idx == currMazeIdx)) mazesList
+            List.indexedMap (\idx maze -> mazeMetaInfo model.mdl idx maze (idx == currMazeIdx) model.mazeDifficulty) mazesList
     in
         grid
             [ Color.background <| Color.accentContrast
@@ -289,8 +293,8 @@ viewViewing model =
             ]
 
 
-mazeToCell : Material.Model -> Int -> Maze -> Bool -> Grid.Cell Msg
-mazeToCell mdl idx maze isCurrentMaze =
+mazeMetaInfo : Material.Model -> Int -> Maze -> Bool -> Difficulty -> Grid.Cell Msg
+mazeMetaInfo mdl idx maze isCurrentMaze mazeDifficulty =
     let
         makeMsg val =
             (toString val) ++ " x " ++ (toString val) ++ " blocks"
@@ -299,7 +303,8 @@ mazeToCell mdl idx maze isCurrentMaze =
             makeMsg maze.mazeSize
 
         vps =
-            makeMsg maze.viewportSize
+            -- TODO: fix hard-code.
+            makeMsg 60
 
         backgroundColor =
             if isCurrentMaze then
@@ -334,9 +339,41 @@ mazeToCell mdl idx maze isCurrentMaze =
                     ]
                 , Card.text [ Color.text textColor ]
                     [ text ("Size: " ++ gws ++ ", Viewport: " ++ vps) ]
+                , Card.text [ Color.text textColor ]
+                    [ Toggles.radio Mdl
+                        [ mazeMetaInfoContext, 10, idx ]
+                        mdl
+                        [ Toggles.value <| mazeDifficulty == Easy
+                        , Toggles.group "PlayMode"
+                        , Toggles.ripple
+                        , Toggles.onClick <| MazeDifficulty Easy
+                        , Options.css "padding-right" "10px"
+                        ]
+                        [ text "Easy" ]
+                    , Toggles.radio Mdl
+                        [ mazeMetaInfoContext, 11, idx ]
+                        mdl
+                        [ Toggles.value <| mazeDifficulty == Medium
+                        , Toggles.group "PlayMode"
+                        , Toggles.ripple
+                        , Toggles.onClick <| MazeDifficulty Medium
+                        , Options.css "padding-right" "10px"
+                        ]
+                        [ text "Medium" ]
+                    , Toggles.radio Mdl
+                        [ mazeMetaInfoContext, 12, idx ]
+                        mdl
+                        [ Toggles.value <| mazeDifficulty == Hard
+                        , Toggles.group "PlayMode"
+                        , Toggles.ripple
+                        , Toggles.onClick <| MazeDifficulty Hard
+                        , Options.css "padding-right" "10px"
+                        ]
+                        [ text "Hard" ]
+                    ]
                 , Card.text []
                     [ Button.render Mdl
-                        [ 1, idx ]
+                        [ mazeMetaInfoContext, 1, idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
@@ -344,7 +381,7 @@ mazeToCell mdl idx maze isCurrentMaze =
                         ]
                         [ text "Play" ]
                     , Button.render Mdl
-                        [ 2, idx ]
+                        [ mazeMetaInfoContext, 2, idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
@@ -352,7 +389,7 @@ mazeToCell mdl idx maze isCurrentMaze =
                         ]
                         [ text "Edit" ]
                     , Button.render Mdl
-                        [ 3, idx ]
+                        [ mazeMetaInfoContext, 3, idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
@@ -399,10 +436,18 @@ viewMaze model =
                     ( 800, 800 // maze.mazeSize )
 
         ( viewportSize, x, y ) =
-            ( if model.mazeMode == Playing then
-                maze.viewportSize
-              else
-                maze.mazeSize
+            ( case ( model.mazeMode, model.mazeDifficulty ) of
+                ( Playing, Hard ) ->
+                    round <| (toFloat maze.mazeSize) / 4
+
+                ( Playing, Medium ) ->
+                    round <| (toFloat maze.mazeSize) / 2
+
+                ( Playing, Easy ) ->
+                    maze.mazeSize
+
+                _ ->
+                    maze.mazeSize
             , fst maze.center
             , snd maze.center
             )
@@ -564,8 +609,8 @@ drawCell col row north east south west isCenter mode blockSize =
                 , S.height <| intToPx blockSize
                 , S.stroke fillColor
                 , S.fill
-                    <| if isCenter then
-                        "blue"
+                    <| if isCenter && mode == Playing then
+                        "lightblue"
                        else
                         fillColor
                 , S.x (intToPx xs)

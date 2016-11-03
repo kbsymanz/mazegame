@@ -3,6 +3,7 @@ module Model
         ( Model
         , Maze
         , Mode(..)
+        , Difficulty(..)
         , createMaze
         )
 
@@ -22,6 +23,7 @@ import MazeGenerate as MG
 type alias Model =
     { mazes : Zipper Maze
     , mazeMode : Mode
+    , mazeDifficulty : Difficulty
     , mazeGenerate : MG.Model
     , mdl : Material.Model
     , keyboardModel : Keyboard.Model
@@ -32,7 +34,6 @@ type alias Model =
 type alias Maze =
     { cells : Matrix MG.Cell
     , mazeSize : Int
-    , viewportSize : Int
     , center : ( Int, Int )
     , title : String
     , id : Int
@@ -46,11 +47,16 @@ type Mode
     | Viewing
 
 
-createMaze : Int -> Int -> Int -> Maze
-createMaze gwSize dwSize id =
+type Difficulty
+    = Easy
+    | Medium
+    | Hard
+
+
+createMaze : Int -> Int -> Maze
+createMaze gwSize id =
     { cells = initialCells gwSize
     , mazeSize = gwSize
-    , viewportSize = dwSize
     , center = ( 10, 10 )
     , title = "Testing only"
     , id = id
