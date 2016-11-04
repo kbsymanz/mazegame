@@ -55,14 +55,18 @@ type Difficulty
 
 
 createMaze : Int -> Int -> Maze
-createMaze gwSize id =
-    { cells = initialCells gwSize
-    , mazeSize = gwSize
-    , center = ( 10, 10 )
-    , title = "Testing only"
-    , id = id
-    , percComplete = 0
-    }
+createMaze mazeSize id =
+    let
+        ( cx, cy ) =
+            ( mazeSize // 2, mazeSize // 2 )
+    in
+        { cells = initialCells mazeSize
+        , mazeSize = mazeSize
+        , center = ( cx, cy )
+        , title = ""
+        , id = id
+        , percComplete = 0
+        }
 
 
 initialCells : Int -> Matrix MG.Cell
