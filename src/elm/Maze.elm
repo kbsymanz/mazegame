@@ -42,6 +42,7 @@ init =
         ( { mazes = Zipper.singleton <| createMaze mazeSize 1
           , mazeMode = Viewing
           , mazeDifficulty = Easy
+          , mazeSizePending = 20
           , mazeGenerate = MG.emptyModel
           , mdl = Material.model
           , keyboardModel = keyboardModel
@@ -68,11 +69,30 @@ update msg model =
         MazeDifficulty diff ->
             { model | mazeDifficulty = diff } ! []
 
+        MazeSizePending size ->
+            let
+                ( mgModel, mgCmd ) =
+                    MG.update MG.MazeGenerationStop model.mazeGenerate
+
+                newMaze =
+                    createMaze size model.nextId
+
+                newMazes =
+                    Zipper.update (always newMaze) model.mazes
+            in
+                { model
+                    | mazeSizePending = size
+                    , mazes = newMazes
+                    , nextId = model.nextId + 1
+                    , mazeGenerate = mgModel
+                }
+                    ! [ Cmd.none ]
+
         NewMaze ->
             -- Inserts the new maze after the current maze and makes it current.
             let
                 newMaze =
-                    createMaze 40 (model.nextId)
+                    createMaze 40 model.nextId
 
                 newMazes =
                     case

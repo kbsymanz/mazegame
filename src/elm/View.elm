@@ -186,6 +186,43 @@ viewEditing model =
                             ]
                         ]
                     , cell
+                        -- The size of the maze to generate.
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Toggles.radio Mdl
+                            [ viewEditingContext, 10 ]
+                            model.mdl
+                            [ Toggles.value <| model.mazeSizePending <= 10
+                            , Toggles.group "mazeSizePending"
+                            , Toggles.ripple
+                            , Toggles.onClick <| MazeSizePending 10
+                            , Options.css "padding-right" "10px"
+                            ]
+                            [ text "10 x 10" ]
+                        , Toggles.radio Mdl
+                            [ viewEditingContext, 11 ]
+                            model.mdl
+                            [ Toggles.value <| model.mazeSizePending > 10 && model.mazeSizePending <= 20
+                            , Toggles.group "mazeSizePending"
+                            , Toggles.ripple
+                            , Toggles.onClick <| MazeSizePending 20
+                            , Options.css "padding-right" "10px"
+                            ]
+                            [ text "20 x 20" ]
+                        , Toggles.radio Mdl
+                            [ viewEditingContext, 12 ]
+                            model.mdl
+                            [ Toggles.value <| model.mazeSizePending > 20
+                            , Toggles.group "mazeSizePending"
+                            , Toggles.ripple
+                            , Toggles.onClick <| MazeSizePending 40
+                            , Options.css "padding-right" "10px"
+                            ]
+                            [ text "40 x 40" ]
+                        ]
+                    , cell
                         -- Generate maze button and percent complete.
                         [ size Desktop 12
                         , size Tablet 8

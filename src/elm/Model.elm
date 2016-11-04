@@ -24,6 +24,7 @@ type alias Model =
     { mazes : Zipper Maze
     , mazeMode : Mode
     , mazeDifficulty : Difficulty
+    , mazeSizePending : Int
     , mazeGenerate : MG.Model
     , mdl : Material.Model
     , keyboardModel : Keyboard.Model

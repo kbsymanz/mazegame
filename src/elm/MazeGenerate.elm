@@ -30,16 +30,6 @@ type Direction
     | West
 
 
-
-{- :
-   To Do:
-   6. Add tests.
-   7. Go through all code and standardize on north or top, etc.
-   10. Do the Sidewinder algorithm or one of the other ones.
-   11. Turn the whole thing into a package.
--}
-
-
 type alias Model =
     { cells : Matrix Cell
     , mazeSize : Int
@@ -55,6 +45,7 @@ type MazeStatus
     = Empty
     | InProcess
     | Complete
+    | Stopped
 
 
 emptyModel : Model
@@ -82,6 +73,7 @@ type Msg
     | BinaryTreeUpdate Bool
     | BinaryTreeDoRandom
     | BinaryTreeComplete
+    | MazeGenerationStop
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -93,7 +85,14 @@ update msg model =
                 -- already processing another maze and have not processed this
                 -- one yet.
                 ( initializedModel, newCmd ) =
-                    if model.status == Empty || model.status == Complete then
+                    if
+                        model.status
+                            == Empty
+                            || model.status
+                            == Complete
+                            || model.status
+                            == Stopped
+                    then
                         ( initModel
                             { emptyModel
                                 | mazeSize = size
@@ -111,15 +110,21 @@ update msg model =
         BinaryTreeUpdate bool ->
             let
                 ( newModel, newCmd ) =
-                    generateBinaryTree model bool
+                    if model.status == Stopped then
+                        ( model, Cmd.none )
+                    else
+                        generateBinaryTree model bool
 
                 percComplete =
-                    newModel.mazeSize
-                        * newModel.mazeSize
-                        |> toFloat
-                        |> (/) ((toFloat (newModel.currRow * newModel.mazeSize)) + (toFloat newModel.currCol))
-                        |> (*) 100.0
-                        |> round
+                    if model.status /= Stopped then
+                        newModel.mazeSize
+                            * newModel.mazeSize
+                            |> toFloat
+                            |> (/) ((toFloat (newModel.currRow * newModel.mazeSize)) + (toFloat newModel.currCol))
+                            |> (*) 100.0
+                            |> round
+                    else
+                        0
             in
                 { newModel | percComplete = percComplete } ! [ newCmd ]
 
@@ -132,6 +137,16 @@ update msg model =
 
         BinaryTreeComplete ->
             model ! []
+
+        MazeGenerationStop ->
+            let
+                newStatus =
+                    if model.status == InProcess then
+                        Stopped
+                    else
+                        model.status
+            in
+                { model | status = newStatus } ! []
 
 
 {-| Initialize the cells field of the model with unlinked cells according to
