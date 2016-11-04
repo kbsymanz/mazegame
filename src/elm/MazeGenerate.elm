@@ -136,7 +136,7 @@ update msg model =
             ( model, Random.generate BinaryTreeUpdate Random.bool )
 
         BinaryTreeComplete ->
-            model ! []
+            { model | percComplete = 100 } ! []
 
         MazeGenerationStop ->
             let

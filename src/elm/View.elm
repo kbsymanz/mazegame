@@ -343,6 +343,9 @@ mazeMetaInfo mdl idx maze isCurrentMaze mazeDifficulty =
             -- TODO: fix hard-code.
             makeMsg 60
 
+        isMazeReady =
+            maze.percComplete == 100
+
         backgroundColor =
             if isCurrentMaze then
                 Color.primaryContrast
@@ -415,6 +418,7 @@ mazeMetaInfo mdl idx maze isCurrentMaze mazeDifficulty =
                         [ Button.ripple
                         , Button.colored
                         , Button.onClick <| PlayMode Playing
+                        , Options.disabled <| not isMazeReady
                         ]
                         [ text "Play" ]
                     , Button.render Mdl
