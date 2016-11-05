@@ -8,6 +8,7 @@ import Material
 import MazeGenerate as MG exposing (..)
 import Model exposing (..)
 import Keyboard.Extra as Keyboard
+import Time exposing (Time)
 
 
 type Msg
@@ -23,3 +24,4 @@ type Msg
     | SetTitle String
     | KeyboardExtraMsg Keyboard.Msg
     | MazeGenerate MG.Msg
+    | Tick Time

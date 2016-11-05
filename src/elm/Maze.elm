@@ -5,6 +5,7 @@ import Html.App as App
 import List.Zipper as Zipper exposing (Zipper)
 import Material
 import Keyboard.Extra as Keyboard
+import Time exposing (Time)
 
 
 -- LOCAL IMPORTS
@@ -25,6 +26,21 @@ import View as V
 -- MODEL
 
 
+easyTime : Time
+easyTime =
+    120
+
+
+mediumTime : Time
+mediumTime =
+    90
+
+
+hardTime : Time
+hardTime =
+    60
+
+
 {-| The number of blocks the maze is horizontally and
     vertically.
 -}
@@ -43,6 +59,7 @@ init =
           , mazeMode = Viewing
           , mazeDifficulty = Easy
           , mazeSizePending = 20
+          , timeLeft = easyTime
           , mazeGenerate = MG.emptyModel
           , mdl = Material.model
           , keyboardModel = keyboardModel
@@ -64,7 +81,22 @@ update msg model =
             Material.update mdlMsg model
 
         PlayMode mode ->
-            { model | mazeMode = mode } ! []
+            let
+                timeLeft =
+                    if mode == Playing then
+                        case model.mazeDifficulty of
+                            Easy ->
+                                easyTime
+
+                            Medium ->
+                                mediumTime
+
+                            Hard ->
+                                hardTime
+                    else
+                        model.timeLeft
+            in
+                { model | mazeMode = mode, timeLeft = timeLeft } ! []
 
         MazeDifficulty diff ->
             { model | mazeDifficulty = diff } ! []
@@ -308,6 +340,18 @@ update msg model =
                 , Cmd.map (\m -> MazeGenerate m) mgCmd
                 )
 
+        Tick time ->
+            let
+                timeLeft =
+                    case model.mazeMode == Playing of
+                        True ->
+                            max 0 (model.timeLeft - 1)
+
+                        False ->
+                            model.timeLeft
+            in
+                { model | timeLeft = timeLeft } ! []
+
 
 
 -- MAIN
@@ -317,6 +361,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Sub.map KeyboardExtraMsg Keyboard.subscriptions
+        , Time.every Time.second Tick
         ]
 
 

@@ -133,14 +133,45 @@ viewPlaying model =
                 , size Tablet 1
                 , size Phone 4
                 ]
-                [ Button.render Mdl
-                    [ viewPlayingContext, 0 ]
-                    model.mdl
-                    [ Button.ripple
-                    , Button.colored
-                    , Button.onClick <| PlayMode Viewing
+                [ grid []
+                    [ cell
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Card.view []
+                            [ Card.text []
+                                [ Options.styled div
+                                    [ Typo.display1
+                                    ]
+                                    [ round model.timeLeft
+                                        |> toString
+                                        |> text
+                                    ]
+                                ]
+                            , Card.text []
+                                [ Options.styled div
+                                    [ Typo.subhead
+                                    ]
+                                    [ text "Seconds left" ]
+                                ]
+                            ]
+                        ]
+                    , cell
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Button.render Mdl
+                            [ viewPlayingContext, 0 ]
+                            model.mdl
+                            [ Button.ripple
+                            , Button.colored
+                            , Button.onClick <| PlayMode Viewing
+                            ]
+                            [ text "Done Playing" ]
+                        ]
                     ]
-                    [ text "Done Playing" ]
                 ]
             ]
 

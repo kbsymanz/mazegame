@@ -11,6 +11,7 @@ import Keyboard.Extra as Keyboard
 import List.Zipper as Zipper exposing (Zipper)
 import Material
 import Matrix exposing (Matrix)
+import Time exposing (Time)
 
 
 -- LOCAL IMPORTS
@@ -25,6 +26,7 @@ type alias Model =
     , mazeMode : Mode
     , mazeDifficulty : Difficulty
     , mazeSizePending : Int
+    , timeLeft : Time
     , mazeGenerate : MG.Model
     , mdl : Material.Model
     , keyboardModel : Keyboard.Model
