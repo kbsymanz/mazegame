@@ -60,22 +60,22 @@ type alias Mdl =
 -}
 viewViewingContext : Int
 viewViewingContext =
-    0
+    1000
 
 
 viewEditingContext : Int
 viewEditingContext =
-    1
+    2000
 
 
 viewPlayingContext : Int
 viewPlayingContext =
-    2
+    3000
 
 
 mazeMetaInfoContext : Int
 mazeMetaInfoContext =
-    3
+    4000
 
 
 view : Model -> Html Msg
@@ -270,19 +270,74 @@ viewViewing model =
                 |> List.length
             )
 
-        mazes =
+        mazesListView =
             List.indexedMap (\idx maze -> mazeMetaInfo model.mdl idx maze (idx == currMazeIdx) model.mazeDifficulty) mazesList
     in
         grid
             [ Color.background <| Color.accentContrast
             ]
             [ cell
-                -- Maze on the left.
                 [ size Desktop 6
                 , size Tablet 8
                 , size Phone 4
                 ]
-                <| [ viewMaze model ]
+                [ grid []
+                    [ cell
+                        -- Maze on the left.
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ viewMaze model ]
+                    , cell
+                        -- Play mode options on the left.
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Card.view []
+                            [ Card.title []
+                                [ Card.head
+                                    [ Color.text Color.primary
+                                    ]
+                                    [ text "Choose your difficulty" ]
+                                ]
+                            , Card.text [ Color.text Color.primary ]
+                                [ Toggles.radio Mdl
+                                    [ viewViewingContext, 1 ]
+                                    model.mdl
+                                    [ Toggles.value <| model.mazeDifficulty == Easy
+                                    , Toggles.group "PlayMode"
+                                    , Toggles.ripple
+                                    , Toggles.onClick <| MazeDifficulty Easy
+                                    , Options.css "padding-right" "10px"
+                                    ]
+                                    [ text "Easy" ]
+                                , Toggles.radio Mdl
+                                    [ viewViewingContext, 2 ]
+                                    model.mdl
+                                    [ Toggles.value <| model.mazeDifficulty == Medium
+                                    , Toggles.group "PlayMode"
+                                    , Toggles.ripple
+                                    , Toggles.onClick <| MazeDifficulty Medium
+                                    , Options.css "padding-right" "10px"
+                                    ]
+                                    [ text "Medium" ]
+                                , Toggles.radio Mdl
+                                    [ viewViewingContext, 3 ]
+                                    model.mdl
+                                    [ Toggles.value <| model.mazeDifficulty == Hard
+                                    , Toggles.group "PlayMode"
+                                    , Toggles.ripple
+                                    , Toggles.onClick <| MazeDifficulty Hard
+                                    , Options.css "padding-right" "10px"
+                                    ]
+                                    [ text "Hard" ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
             , cell
                 -- List of Mazes on the right.
                 [ size Desktop 6
@@ -309,7 +364,7 @@ viewViewing model =
                         , size Tablet 8
                         , size Phone 4
                         ]
-                        [ grid [] mazes ]
+                        [ grid [] mazesListView ]
                     , cell
                         -- New maze button.
                         [ size Desktop 12
@@ -378,42 +433,10 @@ mazeMetaInfo mdl idx maze isCurrentMaze mazeDifficulty =
                         [ text ("Title: " ++ maze.title) ]
                     ]
                 , Card.text [ Color.text textColor ]
-                    [ text ("Size: " ++ gws ++ ", Viewport: " ++ vps) ]
-                , Card.text [ Color.text textColor ]
-                    [ Toggles.radio Mdl
-                        [ mazeMetaInfoContext, 10, idx ]
-                        mdl
-                        [ Toggles.value <| mazeDifficulty == Easy
-                        , Toggles.group "PlayMode"
-                        , Toggles.ripple
-                        , Toggles.onClick <| MazeDifficulty Easy
-                        , Options.css "padding-right" "10px"
-                        ]
-                        [ text "Easy" ]
-                    , Toggles.radio Mdl
-                        [ mazeMetaInfoContext, 11, idx ]
-                        mdl
-                        [ Toggles.value <| mazeDifficulty == Medium
-                        , Toggles.group "PlayMode"
-                        , Toggles.ripple
-                        , Toggles.onClick <| MazeDifficulty Medium
-                        , Options.css "padding-right" "10px"
-                        ]
-                        [ text "Medium" ]
-                    , Toggles.radio Mdl
-                        [ mazeMetaInfoContext, 12, idx ]
-                        mdl
-                        [ Toggles.value <| mazeDifficulty == Hard
-                        , Toggles.group "PlayMode"
-                        , Toggles.ripple
-                        , Toggles.onClick <| MazeDifficulty Hard
-                        , Options.css "padding-right" "10px"
-                        ]
-                        [ text "Hard" ]
-                    ]
+                    [ text ("Size: " ++ gws) ]
                 , Card.text []
                     [ Button.render Mdl
-                        [ mazeMetaInfoContext, 1, idx ]
+                        [ mazeMetaInfoContext + 400 + idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
@@ -422,7 +445,7 @@ mazeMetaInfo mdl idx maze isCurrentMaze mazeDifficulty =
                         ]
                         [ text "Play" ]
                     , Button.render Mdl
-                        [ mazeMetaInfoContext, 2, idx ]
+                        [ mazeMetaInfoContext + 500 + idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
@@ -430,7 +453,7 @@ mazeMetaInfo mdl idx maze isCurrentMaze mazeDifficulty =
                         ]
                         [ text "Edit" ]
                     , Button.render Mdl
-                        [ mazeMetaInfoContext, 3, idx ]
+                        [ mazeMetaInfoContext + 600 + idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
