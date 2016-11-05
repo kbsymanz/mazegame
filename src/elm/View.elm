@@ -575,15 +575,36 @@ background model blockSize =
         wh =
             currentMaze.mazeSize * blockSize
 
-        list =
-            [ S.rect
-                [ S.width (intToPx wh)
-                , S.height (intToPx wh)
-                , S.fill "white"
+        doLine x1 x2 y1 y2 =
+            [ S.line
+                [ S.x1 (intToPx x1)
+                , S.y1 (intToPx y1)
+                , S.x2 (intToPx x2)
+                , S.y2 (intToPx y2)
+                , S.stroke "black"
+                , S.strokeWidth "5px"
                 ]
                 []
             ]
-                ++ (drawCells currentMaze model.mazeMode blockSize)
+
+        ( topx1, topy1, topx2, topy2 ) =
+            ( 0, 0, wh, 0 )
+
+        ( rightx1, righty1, rightx2, righty2 ) =
+            ( wh, 0, wh, wh )
+
+        ( bottomx1, bottomy1, bottomx2, bottomy2 ) =
+            ( wh, wh, 0, wh )
+
+        ( leftx1, lefty1, leftx2, lefty2 ) =
+            ( 0, wh, 0, 0 )
+
+        list =
+            (drawCells currentMaze model.mazeMode blockSize)
+                ++ (doLine topx1 topy1 topx2 topy2)
+                ++ (doLine rightx1 righty1 rightx2 righty2)
+                ++ (doLine bottomx1 bottomy1 bottomx2 bottomy2)
+                ++ (doLine leftx1 lefty1 leftx2 lefty2)
     in
         S.g [] list
 
