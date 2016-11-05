@@ -194,7 +194,7 @@ viewEditing model =
                         [ Toggles.radio Mdl
                             [ viewEditingContext, 10 ]
                             model.mdl
-                            [ Toggles.value <| model.mazeSizePending <= 10
+                            [ Toggles.value <| currentMaze.mazeSize <= 10
                             , Toggles.group "mazeSizePending"
                             , Toggles.ripple
                             , Toggles.onClick <| MazeSizePending 10
@@ -204,7 +204,7 @@ viewEditing model =
                         , Toggles.radio Mdl
                             [ viewEditingContext, 11 ]
                             model.mdl
-                            [ Toggles.value <| model.mazeSizePending > 10 && model.mazeSizePending <= 20
+                            [ Toggles.value <| currentMaze.mazeSize > 10 && currentMaze.mazeSize <= 20
                             , Toggles.group "mazeSizePending"
                             , Toggles.ripple
                             , Toggles.onClick <| MazeSizePending 20
@@ -214,7 +214,7 @@ viewEditing model =
                         , Toggles.radio Mdl
                             [ viewEditingContext, 12 ]
                             model.mdl
-                            [ Toggles.value <| model.mazeSizePending > 20
+                            [ Toggles.value <| currentMaze.mazeSize > 20
                             , Toggles.group "mazeSizePending"
                             , Toggles.ripple
                             , Toggles.onClick <| MazeSizePending 40
