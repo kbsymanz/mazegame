@@ -31,6 +31,9 @@ type alias Model =
     , mdl : Material.Model
     , keyboardModel : Keyboard.Model
     , nextId : Int
+    , won : Int
+    , lost : Int
+    , points : Int
     }
 
 
@@ -38,6 +41,7 @@ type alias Maze =
     { cells : Matrix MG.Cell
     , mazeSize : Int
     , center : ( Int, Int )
+    , goal : ( Int, Int )
     , title : String
     , id : Int
     , percComplete : Int
@@ -60,11 +64,12 @@ createMaze : Int -> Int -> Maze
 createMaze mazeSize id =
     let
         ( cx, cy ) =
-            ( mazeSize // 2, mazeSize // 2 )
+            ( mazeSize - 2, mazeSize - 2 )
     in
         { cells = initialCells mazeSize
         , mazeSize = mazeSize
         , center = ( cx, cy )
+        , goal = ( 0, 0 )
         , title = ""
         , id = id
         , percComplete = 0

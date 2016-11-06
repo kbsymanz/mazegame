@@ -2,11 +2,12 @@ module Maze exposing (..)
 
 import Array
 import Html.App as App
+import Keyboard.Extra as Keyboard
 import List.Zipper as Zipper exposing (Zipper)
 import Material
-import Keyboard.Extra as Keyboard
-import Time exposing (Time)
 import Matrix
+import Task
+import Time exposing (Time)
 
 
 -- LOCAL IMPORTS
@@ -65,6 +66,9 @@ init =
           , mdl = Material.model
           , keyboardModel = keyboardModel
           , nextId = 2
+          , won = 0
+          , lost = 0
+          , points = 0
           }
         , Cmd.map KeyboardExtraMsg keyboardCmd
         )
@@ -72,6 +76,64 @@ init =
 
 
 -- UPDATE
+
+
+calcPoints : Int -> Int -> Difficulty -> Int
+calcPoints mazeSize secondsElapsed difficulty =
+    let
+        points =
+            case compare mazeSize 20 of
+                LT ->
+                    case difficulty of
+                        Easy ->
+                            200 - secondsElapsed
+
+                        Medium ->
+                            300 - secondsElapsed
+
+                        Hard ->
+                            400 - secondsElapsed
+
+                EQ ->
+                    case difficulty of
+                        Easy ->
+                            800 - secondsElapsed
+
+                        Medium ->
+                            1000 - secondsElapsed
+
+                        Hard ->
+                            1200 - secondsElapsed
+
+                GT ->
+                    case difficulty of
+                        Easy ->
+                            1800 - secondsElapsed
+
+                        Medium ->
+                            2200 - secondsElapsed
+
+                        Hard ->
+                            2600 - secondsElapsed
+    in
+        points
+
+
+resetCenter : Model -> Model
+resetCenter model =
+    let
+        currentMaze =
+            Zipper.current model.mazes
+
+        updatedMaze =
+            { currentMaze
+                | center = ( currentMaze.mazeSize - 2, currentMaze.mazeSize - 2 )
+            }
+
+        newMazes =
+            Zipper.update (always updatedMaze) model.mazes
+    in
+        { model | mazes = newMazes }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -98,6 +160,38 @@ update msg model =
                         model.timeLeft
             in
                 { model | mazeMode = mode, timeLeft = timeLeft } ! []
+
+        GameWon ->
+            let
+                currentMaze =
+                    Zipper.current model.mazes
+
+                points =
+                    calcPoints currentMaze.mazeSize (round model.timeLeft) model.mazeDifficulty
+
+                -- Reset center for the next game.
+                newModel =
+                    resetCenter model
+            in
+                { newModel
+                    | mazeMode = Viewing
+                    , won = model.won + 1
+                    , points = model.points + points
+                }
+                    ! []
+
+        GameLost ->
+            -- TODO: toast the results.
+            let
+                -- Reset center for the next game.
+                newModel =
+                    resetCenter model
+            in
+                { newModel
+                    | mazeMode = Viewing
+                    , lost = model.lost + 1
+                }
+                    ! []
 
         MazeDifficulty diff ->
             { model | mazeDifficulty = diff } ! []
@@ -248,6 +342,9 @@ update msg model =
                 center =
                     currentmaze.center
 
+                ( goalx, goaly ) =
+                    ( fst currentmaze.goal, snd currentmaze.goal )
+
                 ms =
                     currentmaze.mazeSize
 
@@ -307,16 +404,25 @@ update msg model =
 
                 updatedMazes =
                     Zipper.update (\m -> { m | center = ( newx, newy ) }) model.mazes
+
+                newCmd =
+                    if goalx == centerx && goaly == centery && model.mazeMode == Playing then
+                        Task.perform (always GameWon) (always GameWon) <| Task.succeed True
+                    else
+                        Cmd.none
             in
                 if model.mazeMode == Playing then
                     ( { model
                         | keyboardModel = keyboardModel
                         , mazes = updatedMazes
                       }
-                    , Cmd.map KeyboardExtraMsg keyboardCmd
+                    , Cmd.batch
+                        [ Cmd.map KeyboardExtraMsg keyboardCmd
+                        , newCmd
+                        ]
                     )
                 else
-                    model ! []
+                    model ! [ newCmd ]
 
         MazeGenerate mgMsg ->
             let
@@ -362,8 +468,14 @@ update msg model =
 
                         False ->
                             model.timeLeft
+
+                ( newModel, newCmd ) =
+                    if timeLeft == 0 && model.mazeMode == Playing then
+                        update GameLost model
+                    else
+                        ( model, Cmd.none )
             in
-                { model | timeLeft = timeLeft } ! []
+                { newModel | timeLeft = timeLeft } ! [ newCmd ]
 
 
 

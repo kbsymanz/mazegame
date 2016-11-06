@@ -13,6 +13,8 @@ import Time exposing (Time)
 
 type Msg
     = PlayMode Mode
+    | GameWon
+    | GameLost
     | MazeDifficulty Difficulty
     | MazeSizePending Int
     | Mdl (Material.Msg Msg)
