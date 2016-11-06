@@ -8,11 +8,13 @@ import Material
 import MazeGenerate as MG exposing (..)
 import Model exposing (..)
 import Keyboard.Extra as Keyboard
+import Time exposing (Time)
 
 
 type Msg
     = PlayMode Mode
-    | ViewportSize Int
+    | MazeDifficulty Difficulty
+    | MazeSizePending Int
     | Mdl (Material.Msg Msg)
     | NewMaze
     | DeleteMaze Int
@@ -22,3 +24,4 @@ type Msg
     | SetTitle String
     | KeyboardExtraMsg Keyboard.Msg
     | MazeGenerate MG.Msg
+    | Tick Time

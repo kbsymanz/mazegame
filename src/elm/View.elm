@@ -15,6 +15,7 @@ import Material.Grid as Grid exposing (grid, cell, size, Device(..))
 import Material.Layout as Layout
 import Material.Options as Options
 import Material.Textfield as Textfield
+import Material.Toggles as Toggles
 import Material.Typography as Typo
 import Svg as S
 import Svg.Attributes as S
@@ -28,6 +29,7 @@ import Model
         ( Model
         , Maze
         , Mode(..)
+        , Difficulty(..)
         )
 import Msg exposing (..)
 
@@ -58,12 +60,22 @@ type alias Mdl =
 -}
 viewViewingContext : Int
 viewViewingContext =
-    0
+    1000
 
 
 viewEditingContext : Int
 viewEditingContext =
-    1
+    2000
+
+
+viewPlayingContext : Int
+viewPlayingContext =
+    3000
+
+
+mazeMetaInfoContext : Int
+mazeMetaInfoContext =
+    4000
 
 
 view : Model -> Html Msg
@@ -91,9 +103,77 @@ viewMain model =
                     viewEditing model
 
                 Playing ->
-                    viewViewing model
+                    viewPlaying model
     in
         view
+
+
+viewPlaying : Model -> Html Msg
+viewPlaying model =
+    let
+        ( mazesList, currMazeIdx ) =
+            ( Zipper.toList model.mazes
+            , Zipper.before model.mazes
+                |> List.length
+            )
+    in
+        grid
+            [ Color.background <| Color.accentContrast
+            ]
+            [ cell
+                -- Maze on the left.
+                [ size Desktop 10
+                , size Tablet 7
+                , size Phone 4
+                ]
+                <| [ viewMaze model ]
+            , cell
+                -- Done Playing button.
+                [ size Desktop 2
+                , size Tablet 1
+                , size Phone 4
+                ]
+                [ grid []
+                    [ cell
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Card.view []
+                            [ Card.text []
+                                [ Options.styled div
+                                    [ Typo.display1
+                                    ]
+                                    [ round model.timeLeft
+                                        |> toString
+                                        |> text
+                                    ]
+                                ]
+                            , Card.text []
+                                [ Options.styled div
+                                    [ Typo.subhead
+                                    ]
+                                    [ text "Seconds left" ]
+                                ]
+                            ]
+                        ]
+                    , cell
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Button.render Mdl
+                            [ viewPlayingContext, 0 ]
+                            model.mdl
+                            [ Button.ripple
+                            , Button.colored
+                            , Button.onClick <| PlayMode Viewing
+                            ]
+                            [ text "Done Playing" ]
+                        ]
+                    ]
+                ]
+            ]
 
 
 viewEditing : Model -> Html Msg
@@ -135,6 +215,43 @@ viewEditing model =
                             , Textfield.value currentMaze.title
                             , Textfield.onInput SetTitle
                             ]
+                        ]
+                    , cell
+                        -- The size of the maze to generate.
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Toggles.radio Mdl
+                            [ viewEditingContext, 10 ]
+                            model.mdl
+                            [ Toggles.value <| currentMaze.mazeSize <= 10
+                            , Toggles.group "mazeSizePending"
+                            , Toggles.ripple
+                            , Toggles.onClick <| MazeSizePending 10
+                            , Options.css "padding-right" "10px"
+                            ]
+                            [ text "10 x 10" ]
+                        , Toggles.radio Mdl
+                            [ viewEditingContext, 11 ]
+                            model.mdl
+                            [ Toggles.value <| currentMaze.mazeSize > 10 && currentMaze.mazeSize <= 20
+                            , Toggles.group "mazeSizePending"
+                            , Toggles.ripple
+                            , Toggles.onClick <| MazeSizePending 20
+                            , Options.css "padding-right" "10px"
+                            ]
+                            [ text "20 x 20" ]
+                        , Toggles.radio Mdl
+                            [ viewEditingContext, 12 ]
+                            model.mdl
+                            [ Toggles.value <| currentMaze.mazeSize > 20
+                            , Toggles.group "mazeSizePending"
+                            , Toggles.ripple
+                            , Toggles.onClick <| MazeSizePending 40
+                            , Options.css "padding-right" "10px"
+                            ]
+                            [ text "40 x 40" ]
                         ]
                     , cell
                         -- Generate maze button and percent complete.
@@ -184,19 +301,74 @@ viewViewing model =
                 |> List.length
             )
 
-        mazes =
-            List.indexedMap (\idx maze -> mazeToCell model.mdl idx maze (idx == currMazeIdx)) mazesList
+        mazesListView =
+            List.indexedMap (\idx maze -> mazeMetaInfo model.mdl idx maze (idx == currMazeIdx) model.mazeDifficulty) mazesList
     in
         grid
             [ Color.background <| Color.accentContrast
             ]
             [ cell
-                -- Maze on the left.
                 [ size Desktop 6
                 , size Tablet 8
                 , size Phone 4
                 ]
-                <| [ viewMaze model ]
+                [ grid []
+                    [ cell
+                        -- Maze on the left.
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ viewMaze model ]
+                    , cell
+                        -- Play mode options on the left.
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Card.view []
+                            [ Card.title []
+                                [ Card.head
+                                    [ Color.text Color.primary
+                                    ]
+                                    [ text "Choose your difficulty" ]
+                                ]
+                            , Card.text [ Color.text Color.primary ]
+                                [ Toggles.radio Mdl
+                                    [ viewViewingContext, 1 ]
+                                    model.mdl
+                                    [ Toggles.value <| model.mazeDifficulty == Easy
+                                    , Toggles.group "PlayMode"
+                                    , Toggles.ripple
+                                    , Toggles.onClick <| MazeDifficulty Easy
+                                    , Options.css "padding-right" "10px"
+                                    ]
+                                    [ text "Easy" ]
+                                , Toggles.radio Mdl
+                                    [ viewViewingContext, 2 ]
+                                    model.mdl
+                                    [ Toggles.value <| model.mazeDifficulty == Medium
+                                    , Toggles.group "PlayMode"
+                                    , Toggles.ripple
+                                    , Toggles.onClick <| MazeDifficulty Medium
+                                    , Options.css "padding-right" "10px"
+                                    ]
+                                    [ text "Medium" ]
+                                , Toggles.radio Mdl
+                                    [ viewViewingContext, 3 ]
+                                    model.mdl
+                                    [ Toggles.value <| model.mazeDifficulty == Hard
+                                    , Toggles.group "PlayMode"
+                                    , Toggles.ripple
+                                    , Toggles.onClick <| MazeDifficulty Hard
+                                    , Options.css "padding-right" "10px"
+                                    ]
+                                    [ text "Hard" ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
             , cell
                 -- List of Mazes on the right.
                 [ size Desktop 6
@@ -223,7 +395,7 @@ viewViewing model =
                         , size Tablet 8
                         , size Phone 4
                         ]
-                        [ grid [] mazes ]
+                        [ grid [] mazesListView ]
                     , cell
                         -- New maze button.
                         [ size Desktop 12
@@ -244,8 +416,8 @@ viewViewing model =
             ]
 
 
-mazeToCell : Material.Model -> Int -> Maze -> Bool -> Grid.Cell Msg
-mazeToCell mdl idx maze isCurrentMaze =
+mazeMetaInfo : Material.Model -> Int -> Maze -> Bool -> Difficulty -> Grid.Cell Msg
+mazeMetaInfo mdl idx maze isCurrentMaze mazeDifficulty =
     let
         makeMsg val =
             (toString val) ++ " x " ++ (toString val) ++ " blocks"
@@ -254,7 +426,11 @@ mazeToCell mdl idx maze isCurrentMaze =
             makeMsg maze.mazeSize
 
         vps =
-            makeMsg maze.viewportSize
+            -- TODO: fix hard-code.
+            makeMsg 60
+
+        isMazeReady =
+            maze.percComplete == 100
 
         backgroundColor =
             if isCurrentMaze then
@@ -288,18 +464,19 @@ mazeToCell mdl idx maze isCurrentMaze =
                         [ text ("Title: " ++ maze.title) ]
                     ]
                 , Card.text [ Color.text textColor ]
-                    [ text ("Size: " ++ gws ++ ", Viewport: " ++ vps) ]
+                    [ text ("Size: " ++ gws) ]
                 , Card.text []
                     [ Button.render Mdl
-                        [ 1, idx ]
+                        [ mazeMetaInfoContext + 400 + idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
                         , Button.onClick <| PlayMode Playing
+                        , Options.disabled <| not isMazeReady
                         ]
                         [ text "Play" ]
                     , Button.render Mdl
-                        [ 2, idx ]
+                        [ mazeMetaInfoContext + 500 + idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
@@ -307,7 +484,7 @@ mazeToCell mdl idx maze isCurrentMaze =
                         ]
                         [ text "Edit" ]
                     , Button.render Mdl
-                        [ 3, idx ]
+                        [ mazeMetaInfoContext + 600 + idx ]
                         mdl
                         [ Button.ripple
                         , Button.colored
@@ -348,13 +525,24 @@ viewMaze model =
                     ( 300, 300 // maze.mazeSize )
 
                 Editing ->
-                    ( 600, 500 // maze.mazeSize )
+                    ( 600, 600 // maze.mazeSize )
 
                 Playing ->
-                    ( 400, 400 // maze.mazeSize )
+                    ( 800, 800 // maze.mazeSize )
 
         ( viewportSize, x, y ) =
-            ( maze.viewportSize
+            ( case ( model.mazeMode, model.mazeDifficulty ) of
+                ( Playing, Hard ) ->
+                    round <| (toFloat maze.mazeSize) / 4
+
+                ( Playing, Medium ) ->
+                    round <| (toFloat maze.mazeSize) / 2
+
+                ( Playing, Easy ) ->
+                    maze.mazeSize
+
+                _ ->
+                    maze.mazeSize
             , fst maze.center
             , snd maze.center
             )
@@ -387,15 +575,36 @@ background model blockSize =
         wh =
             currentMaze.mazeSize * blockSize
 
-        list =
-            [ S.rect
-                [ S.width (intToPx wh)
-                , S.height (intToPx wh)
-                , S.fill "white"
+        doLine x1 x2 y1 y2 =
+            [ S.line
+                [ S.x1 (intToPx x1)
+                , S.y1 (intToPx y1)
+                , S.x2 (intToPx x2)
+                , S.y2 (intToPx y2)
+                , S.stroke "black"
+                , S.strokeWidth "5px"
                 ]
                 []
             ]
-                ++ (drawCells currentMaze model.mazeMode blockSize)
+
+        ( topx1, topy1, topx2, topy2 ) =
+            ( 0, 0, wh, 0 )
+
+        ( rightx1, righty1, rightx2, righty2 ) =
+            ( wh, 0, wh, wh )
+
+        ( bottomx1, bottomy1, bottomx2, bottomy2 ) =
+            ( wh, wh, 0, wh )
+
+        ( leftx1, lefty1, leftx2, lefty2 ) =
+            ( 0, wh, 0, 0 )
+
+        list =
+            (drawCells currentMaze model.mazeMode blockSize)
+                ++ (doLine topx1 topy1 topx2 topy2)
+                ++ (doLine rightx1 righty1 rightx2 righty2)
+                ++ (doLine bottomx1 bottomy1 bottomx2 bottomy2)
+                ++ (doLine leftx1 lefty1 leftx2 lefty2)
     in
         S.g [] list
 
@@ -516,8 +725,8 @@ drawCell col row north east south west isCenter mode blockSize =
                 , S.height <| intToPx blockSize
                 , S.stroke fillColor
                 , S.fill
-                    <| if isCenter then
-                        "blue"
+                    <| if isCenter && mode == Playing then
+                        "lightblue"
                        else
                         fillColor
                 , S.x (intToPx xs)

@@ -5,6 +5,7 @@ import Html.App as App
 import List.Zipper as Zipper exposing (Zipper)
 import Material
 import Keyboard.Extra as Keyboard
+import Time exposing (Time)
 import Matrix
 
 
@@ -16,6 +17,7 @@ import Model
         ( Model
         , Maze
         , Mode(..)
+        , Difficulty(..)
         , createMaze
         )
 import Msg exposing (Msg(..))
@@ -23,6 +25,21 @@ import View as V
 
 
 -- MODEL
+
+
+easyTime : Time
+easyTime =
+    120
+
+
+mediumTime : Time
+mediumTime =
+    90
+
+
+hardTime : Time
+hardTime =
+    60
 
 
 {-| The number of blocks the maze is horizontally and
@@ -33,22 +50,17 @@ mazeSize =
     20
 
 
-{-| The number of blocks the user can currently see horizontally
-    and vertically.
--}
-viewportSize : Int
-viewportSize =
-    60
-
-
 init : ( Model, Cmd Msg )
 init =
     let
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
     in
-        ( { mazes = Zipper.singleton <| createMaze mazeSize viewportSize 1
+        ( { mazes = Zipper.singleton <| createMaze mazeSize 1
           , mazeMode = Viewing
+          , mazeDifficulty = Easy
+          , mazeSizePending = 20
+          , timeLeft = easyTime
           , mazeGenerate = MG.emptyModel
           , mdl = Material.model
           , keyboardModel = keyboardModel
@@ -70,20 +82,50 @@ update msg model =
             Material.update mdlMsg model
 
         PlayMode mode ->
-            { model | mazeMode = mode } ! []
-
-        ViewportSize size ->
             let
-                newMazes =
-                    Zipper.update (\m -> { m | viewportSize = size }) model.mazes
+                timeLeft =
+                    if mode == Playing then
+                        case model.mazeDifficulty of
+                            Easy ->
+                                easyTime
+
+                            Medium ->
+                                mediumTime
+
+                            Hard ->
+                                hardTime
+                    else
+                        model.timeLeft
             in
-                { model | mazes = newMazes } ! []
+                { model | mazeMode = mode, timeLeft = timeLeft } ! []
+
+        MazeDifficulty diff ->
+            { model | mazeDifficulty = diff } ! []
+
+        MazeSizePending size ->
+            let
+                ( mgModel, mgCmd ) =
+                    MG.update MG.MazeGenerationStop model.mazeGenerate
+
+                newMaze =
+                    createMaze size model.nextId
+
+                newMazes =
+                    Zipper.update (always newMaze) model.mazes
+            in
+                { model
+                    | mazeSizePending = size
+                    , mazes = newMazes
+                    , nextId = model.nextId + 1
+                    , mazeGenerate = mgModel
+                }
+                    ! [ Cmd.none ]
 
         NewMaze ->
             -- Inserts the new maze after the current maze and makes it current.
             let
                 newMaze =
-                    createMaze 40 40 (model.nextId)
+                    createMaze 40 model.nextId
 
                 newMazes =
                     case
@@ -115,17 +157,17 @@ update msg model =
                 newMazes =
                     case ( List.isEmpty before, List.isEmpty after ) of
                         ( _, False ) ->
-                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize viewportSize (model.nextId)) (List.head after))
+                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize (model.nextId)) (List.head after))
                                 |> Zipper.updateBefore (always before)
                                 |> Zipper.updateAfter (always (List.drop 1 after))
 
                         ( False, True ) ->
-                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize viewportSize (model.nextId)) (List.reverse before |> List.head))
+                            Zipper.singleton (Maybe.withDefault (createMaze mazeSize (model.nextId)) (List.reverse before |> List.head))
                                 |> Zipper.updateBefore (always (List.take ((List.length before) - 1) before))
                                 |> Zipper.updateAfter (always [])
 
                         ( True, True ) ->
-                            Zipper.singleton (createMaze mazeSize viewportSize (model.nextId))
+                            Zipper.singleton (createMaze mazeSize (model.nextId))
             in
                 { model | mazes = newMazes, nextId = model.nextId + 1 } ! []
 
@@ -219,8 +261,9 @@ update msg model =
                     case Matrix.get centerx centery currentmaze.cells of
                         Just c ->
                             c
+
                         Nothing ->
-                            {northLink = False, eastLink = False, southLink = False, westLink = False}
+                            { northLink = False, eastLink = False, southLink = False, westLink = False }
 
                 newx =
                     case arrows.x of
@@ -233,11 +276,10 @@ update msg model =
                         1 ->
                             if centerx == ms - 1 then
                                 centerx
+                            else if cell.eastLink then
+                                centerx + 1
                             else
-                                if cell.eastLink then
-                                    centerx + 1
-                                else
-                                    centerx
+                                centerx
 
                         _ ->
                             centerx
@@ -255,11 +297,10 @@ update msg model =
                             -- up arrow
                             if centery == 0 then
                                 centery
+                            else if cell.northLink then
+                                centery - 1
                             else
-                                if cell.northLink then
-                                    centery - 1
-                                else
-                                    centery
+                                centery
 
                         _ ->
                             centery
@@ -312,6 +353,18 @@ update msg model =
                 , Cmd.map (\m -> MazeGenerate m) mgCmd
                 )
 
+        Tick time ->
+            let
+                timeLeft =
+                    case model.mazeMode == Playing of
+                        True ->
+                            max 0 (model.timeLeft - 1)
+
+                        False ->
+                            model.timeLeft
+            in
+                { model | timeLeft = timeLeft } ! []
+
 
 
 -- MAIN
@@ -321,6 +374,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Sub.map KeyboardExtraMsg Keyboard.subscriptions
+        , Time.every Time.second Tick
         ]
 
 

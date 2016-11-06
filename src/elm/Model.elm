@@ -3,6 +3,7 @@ module Model
         ( Model
         , Maze
         , Mode(..)
+        , Difficulty(..)
         , createMaze
         )
 
@@ -10,6 +11,7 @@ import Keyboard.Extra as Keyboard
 import List.Zipper as Zipper exposing (Zipper)
 import Material
 import Matrix exposing (Matrix)
+import Time exposing (Time)
 
 
 -- LOCAL IMPORTS
@@ -22,6 +24,9 @@ import MazeGenerate as MG
 type alias Model =
     { mazes : Zipper Maze
     , mazeMode : Mode
+    , mazeDifficulty : Difficulty
+    , mazeSizePending : Int
+    , timeLeft : Time
     , mazeGenerate : MG.Model
     , mdl : Material.Model
     , keyboardModel : Keyboard.Model
@@ -32,7 +37,6 @@ type alias Model =
 type alias Maze =
     { cells : Matrix MG.Cell
     , mazeSize : Int
-    , viewportSize : Int
     , center : ( Int, Int )
     , title : String
     , id : Int
@@ -46,16 +50,25 @@ type Mode
     | Viewing
 
 
-createMaze : Int -> Int -> Int -> Maze
-createMaze gwSize dwSize id =
-    { cells = initialCells gwSize
-    , mazeSize = gwSize
-    , viewportSize = dwSize
-    , center = ( 10, 10 )
-    , title = "Testing only"
-    , id = id
-    , percComplete = 0
-    }
+type Difficulty
+    = Easy
+    | Medium
+    | Hard
+
+
+createMaze : Int -> Int -> Maze
+createMaze mazeSize id =
+    let
+        ( cx, cy ) =
+            ( mazeSize // 2, mazeSize // 2 )
+    in
+        { cells = initialCells mazeSize
+        , mazeSize = mazeSize
+        , center = ( cx, cy )
+        , title = ""
+        , id = id
+        , percComplete = 0
+        }
 
 
 initialCells : Int -> Matrix MG.Cell
