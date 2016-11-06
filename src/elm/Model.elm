@@ -45,6 +45,7 @@ type alias Maze =
     , title : String
     , id : Int
     , percComplete : Int
+    , timesWon : Int
     }
 
 
@@ -73,6 +74,7 @@ createMaze mazeSize id =
         , title = ""
         , id = id
         , percComplete = 0
+        , timesWon = 0
         }
 
 

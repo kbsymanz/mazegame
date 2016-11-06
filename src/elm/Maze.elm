@@ -119,8 +119,8 @@ calcPoints mazeSize secondsElapsed difficulty =
         points
 
 
-resetCenter : Model -> Model
-resetCenter model =
+resetCenterPlusWon : Model -> Bool -> Model
+resetCenterPlusWon model didWin =
     let
         currentMaze =
             Zipper.current model.mazes
@@ -128,6 +128,11 @@ resetCenter model =
         updatedMaze =
             { currentMaze
                 | center = ( currentMaze.mazeSize - 2, currentMaze.mazeSize - 2 )
+                , timesWon =
+                    if didWin then
+                        currentMaze.timesWon + 1
+                    else
+                        currentMaze.timesWon
             }
 
         newMazes =
@@ -162,16 +167,21 @@ update msg model =
                 { model | mazeMode = mode, timeLeft = timeLeft } ! []
 
         GameWon ->
+            -- TODO: toast the results.
             let
                 currentMaze =
                     Zipper.current model.mazes
 
+                -- We don't reward user playing the same maze that was already won
+                -- with the same number of points. The more they win that maze, the
+                -- less reward that there is for it.
                 points =
                     calcPoints currentMaze.mazeSize (round model.timeLeft) model.mazeDifficulty
+                        |> flip (//) (currentMaze.timesWon + 1)
 
-                -- Reset center for the next game.
+                -- Reset center and times won for the next game.
                 newModel =
-                    resetCenter model
+                    resetCenterPlusWon model True
             in
                 { newModel
                     | mazeMode = Viewing
@@ -183,9 +193,9 @@ update msg model =
         GameLost ->
             -- TODO: toast the results.
             let
-                -- Reset center for the next game.
+                -- Reset center and times won for the next game.
                 newModel =
-                    resetCenter model
+                    resetCenterPlusWon model False
             in
                 { newModel
                     | mazeMode = Viewing

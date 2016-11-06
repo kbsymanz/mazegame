@@ -329,11 +329,15 @@ viewViewing model =
                         [ Card.view []
                             [ Card.title []
                                 [ Card.head
-                                    [ Color.text Color.primary
+                                    [ Color.text Color.accent
+                                    , Color.background Color.accentContrast
                                     ]
                                     [ text "Choose your difficulty" ]
                                 ]
-                            , Card.text [ Color.text Color.primary ]
+                            , Card.text
+                                [ Color.text Color.accent
+                                , Color.background Color.accentContrast
+                                ]
                                 [ Toggles.radio Mdl
                                     [ viewViewingContext, 1 ]
                                     model.mdl
@@ -365,12 +369,20 @@ viewViewing model =
                                     ]
                                     [ text "Hard" ]
                                 ]
-                            , Card.text [ Color.text Color.primary ]
-                                [ text <| "Won: " ++ (toString model.won) ]
-                            , Card.text [ Color.text Color.primary ]
-                                [ text <| "Lost: " ++ (toString model.lost) ]
-                            , Card.text [ Color.text Color.primary ]
-                                [ text <| "Points: " ++ (toString model.points) ]
+                            , Card.text
+                                [ Color.text Color.primary
+                                , Color.background Color.primaryContrast
+                                ]
+                                [ Options.styled p
+                                    [ Typo.display1 ]
+                                    [ text <| "Games Won: " ++ (toString model.won) ]
+                                , Options.styled p
+                                    [ Typo.display1 ]
+                                    [ text <| "Games Lost: " ++ (toString model.lost) ]
+                                , Options.styled p
+                                    [ Typo.display1 ]
+                                    [ text <| "Total Points: " ++ (toString model.points) ]
+                                ]
                             ]
                         ]
                     ]
@@ -553,14 +565,17 @@ viewMaze model =
             , snd maze.center
             )
 
-        vbx =
-            max 0 ((x * blockSize) - ((viewportSize * blockSize) // 2))
-
-        vby =
-            max 0 ((y * blockSize) - ((viewportSize * blockSize) // 2))
-
         displayWH =
             viewportSize * blockSize
+
+        ( vbx, vby ) =
+            if model.mazeMode /= Playing then
+                -- Show the whole maze unless in playing mode.
+                ( 0, 0 )
+            else
+                ( max 0 ((x * blockSize) - (displayWH // 2))
+                , max 0 ((y * blockSize) - (displayWH // 2))
+                )
     in
         S.svg
             [ S.width (intToPx widthHeight)
@@ -618,11 +633,13 @@ background model blockSize =
 drawCells : Maze -> Mode -> Int -> List (S.Svg Msg)
 drawCells maze mode blockSize =
     let
-        ( cells, centerX, centerY ) =
+        ( cells, centerX, centerY, goalX, goalY ) =
             ( Matrix.toIndexedArray maze.cells
                 |> Array.toList
             , fst maze.center
             , snd maze.center
+            , fst maze.goal
+            , snd maze.goal
             )
     in
         List.map
@@ -646,14 +663,15 @@ drawCells maze mode blockSize =
                         cell.southLink
                         cell.westLink
                         (centerX == col && centerY == row)
+                        (goalX == col && goalY == row)
                         mode
                         blockSize
             )
             cells
 
 
-drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> S.Svg Msg
-drawCell col row north east south west isCenter mode blockSize =
+drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> S.Svg Msg
+drawCell col row north east south west isCenter isGoal mode blockSize =
     let
         -- Translate for blockSize and 0 based Svg system.
         xs =
@@ -733,6 +751,8 @@ drawCell col row north east south west isCenter mode blockSize =
                 , S.fill
                     <| if isCenter && mode == Playing then
                         "lightblue"
+                       else if isGoal && mode == Playing then
+                        "green"
                        else
                         fillColor
                 , S.x (intToPx xs)
