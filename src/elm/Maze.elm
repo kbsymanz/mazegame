@@ -5,6 +5,7 @@ import Html.App as App
 import List.Zipper as Zipper exposing (Zipper)
 import Material
 import Keyboard.Extra as Keyboard
+import Matrix
 
 
 -- LOCAL IMPORTS
@@ -214,10 +215,17 @@ update msg model =
                 centerx =
                     fst center
 
+                cell =
+                    case Matrix.get centerx centery currentmaze.cells of
+                        Just c ->
+                            c
+                        Nothing ->
+                            {northLink = False, eastLink = False, southLink = False, westLink = False}
+
                 newx =
                     case arrows.x of
                         -1 ->
-                            if centerx > 0 then
+                            if centerx > 0 && cell.westLink then
                                 centerx - 1
                             else
                                 centerx
@@ -226,7 +234,10 @@ update msg model =
                             if centerx == ms - 1 then
                                 centerx
                             else
-                                centerx + 1
+                                if cell.eastLink then
+                                    centerx + 1
+                                else
+                                    centerx
 
                         _ ->
                             centerx
@@ -235,7 +246,7 @@ update msg model =
                     case arrows.y of
                         -1 ->
                             -- down arrow
-                            if centery < ms - 1 then
+                            if centery < ms - 1 && cell.southLink then
                                 centery + 1
                             else
                                 centery
@@ -245,7 +256,10 @@ update msg model =
                             if centery == 0 then
                                 centery
                             else
-                                centery - 1
+                                if cell.northLink then
+                                    centery - 1
+                                else
+                                    centery
 
                         _ ->
                             centery
