@@ -142,6 +142,28 @@ viewPlaying model =
                         [ Card.view []
                             [ Card.text []
                                 [ Options.styled div
+                                    [ Typo.subhead
+                                    , Color.text Color.accent
+                                    , Color.background Color.accentContrast
+                                    ]
+                                    [ text "Find the" ]
+                                , Options.styled div
+                                    [ Typo.subhead
+                                    , Color.text Color.accent
+                                    , Color.background Color.accentContrast
+                                    ]
+                                    [ text "green cell" ]
+                                ]
+                            ]
+                        ]
+                    , cell
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Card.view []
+                            [ Card.text []
+                                [ Options.styled div
                                     [ Typo.display1
                                     ]
                                     [ round model.timeLeft
