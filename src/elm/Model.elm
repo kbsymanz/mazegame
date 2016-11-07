@@ -12,6 +12,7 @@ import List.Zipper as Zipper exposing (Zipper)
 import Material
 import Matrix exposing (Matrix)
 import Time exposing (Time)
+import Window exposing (Size)
 
 
 -- LOCAL IMPORTS
@@ -34,6 +35,7 @@ type alias Model =
     , won : Int
     , lost : Int
     , points : Int
+    , windowSize : Size
     }
 
 

@@ -9,10 +9,12 @@ import MazeGenerate as MG exposing (..)
 import Model exposing (..)
 import Keyboard.Extra as Keyboard
 import Time exposing (Time)
+import Window exposing (Size)
 
 
 type Msg
-    = PlayMode Mode
+    = Error String
+    | PlayMode Mode
     | GameWon
     | GameLost
     | MazeDifficulty Difficulty
@@ -27,3 +29,4 @@ type Msg
     | KeyboardExtraMsg Keyboard.Msg
     | MazeGenerate MG.Msg
     | Tick Time
+    | WindowResize Size

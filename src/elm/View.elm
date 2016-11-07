@@ -557,18 +557,42 @@ viewMaze model =
         maze =
             Zipper.current model.mazes
 
-        -- TODO: widthHeight and blockSize to be determined by available
-        -- screen width and playmode instead of arbitrary like this.
+        winSize =
+            min model.windowSize.width model.windowSize.height
+
+        viewingWH =
+            winSize
+                // 2
+                |> flip (-) (winSize // 20)
+
+        editingWH =
+            winSize
+                // 4
+                |> (*) 3
+                |> flip (-) (winSize // 10)
+
+        playingWH =
+            winSize
+                // 8
+                |> (*) 7
+                |> flip (-) (winSize // 20)
+
         ( widthHeight, blockSize ) =
             case model.mazeMode of
                 Viewing ->
-                    ( 300, 300 // maze.mazeSize )
+                    ( viewingWH
+                    , viewingWH // maze.mazeSize
+                    )
 
                 Editing ->
-                    ( 600, 600 // maze.mazeSize )
+                    ( editingWH
+                    , editingWH // maze.mazeSize
+                    )
 
                 Playing ->
-                    ( 800, 800 // maze.mazeSize )
+                    ( playingWH
+                    , playingWH // maze.mazeSize
+                    )
 
         ( viewportSize, x, y ) =
             ( case ( model.mazeMode, model.mazeDifficulty ) of
@@ -767,8 +791,11 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
 
         cellLines =
             [ S.rect
-                [ S.width <| intToPx blockSize
-                , S.height <| intToPx blockSize
+                -- When practically visible, this is either the goal or center cell.
+                -- Make it smaller than a normal cell so that the walls are not
+                -- overwritten and are easy to see.
+                [ S.width <| intToPx (blockSize - 8)
+                , S.height <| intToPx (blockSize - 8)
                 , S.stroke fillColor
                 , S.fill
                     <| if isCenter && mode == Playing then
@@ -777,8 +804,8 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
                         "green"
                        else
                         fillColor
-                , S.x (intToPx xs)
-                , S.y (intToPx ys)
+                , S.x (intToPx (xs + 4))
+                , S.y (intToPx (ys + 4))
                 ]
                 []
             ]

@@ -8,6 +8,7 @@ import Material
 import Matrix
 import Task
 import Time exposing (Time)
+import Window
 
 
 -- LOCAL IMPORTS
@@ -56,6 +57,10 @@ init =
     let
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
+
+        -- Temp.
+        size =
+            { width = 800, height = 800 }
     in
         ( { mazes = Zipper.singleton <| createMaze mazeSize 1
           , mazeMode = Viewing
@@ -69,8 +74,12 @@ init =
           , won = 0
           , lost = 0
           , points = 0
+          , windowSize = size
           }
-        , Cmd.map KeyboardExtraMsg keyboardCmd
+        , Cmd.batch
+            [ Cmd.map KeyboardExtraMsg keyboardCmd
+            , Task.perform Error WindowResize Window.size
+            ]
         )
 
 
@@ -145,6 +154,9 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     --case Debug.log "update" msg of
     case msg of
+        Error e ->
+            model ! []
+
         Mdl mdlMsg ->
             Material.update mdlMsg model
 
@@ -487,6 +499,9 @@ update msg model =
             in
                 { newModel | timeLeft = timeLeft } ! [ newCmd ]
 
+        WindowResize size ->
+            { model | windowSize = size } ! []
+
 
 
 -- MAIN
@@ -497,6 +512,7 @@ subscriptions model =
     Sub.batch
         [ Sub.map KeyboardExtraMsg Keyboard.subscriptions
         , Time.every Time.second Tick
+        , Window.resizes WindowResize
         ]
 
 
