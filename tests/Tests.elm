@@ -15,8 +15,9 @@ import TestData exposing (blockSize, gameWindowSize, displayWindowSize)
 
 -- LOCAL IMPORTS
 
+import Maze as M
 import MazeGenerate as MG
-import Model exposing (Mode(..))
+import Model exposing (Mode(..), Difficulty(..))
 
 
 binaryTreeEast : Bool
@@ -37,6 +38,188 @@ all =
         , generateBinaryTreeTests
         , linkTests
         , updateTests
+        , calcPointsTests
+        ]
+
+
+calcPointsTests : Test
+calcPointsTests =
+    describe "calcPoints"
+        [ test "10x10, 0 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 10 0 Easy
+                in
+                    Expect.equal points 200
+        , test "10x10, 23 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 10 23 Easy
+                in
+                    Expect.equal points 177
+        , test "10x10, 119 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 10 119 Easy
+                in
+                    Expect.equal points 81
+        , test "10x10, 0 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 10 0 Medium
+                in
+                    Expect.equal points 300
+        , test "10x10, 55 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 10 55 Medium
+                in
+                    Expect.equal points 245
+        , test "10x10, 89 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 10 89 Medium
+                in
+                    Expect.equal points 211
+        , test "10x10, 0 seconds, Hard"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 10 0 Hard
+                in
+                    Expect.equal points 400
+        , test "20x20, 0 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 0 Easy
+                in
+                    Expect.equal points 800
+        , test "20x20, 45 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 45 Easy
+                in
+                    Expect.equal points 755
+        , test "20x20, 119 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 119 Easy
+                in
+                    Expect.equal points 681
+        , test "20x20, 0 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 0 Medium
+                in
+                    Expect.equal points 1000
+        , test "20x20, 88 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 88 Medium
+                in
+                    Expect.equal points 912
+        , test "20x20, 119 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 119 Medium
+                in
+                    Expect.equal points 881
+        , test "20x20, 0 seconds, Hard"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 0 Hard
+                in
+                    Expect.equal points 1200
+        , test "20x20, 66 seconds, Hard"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 66 Hard
+                in
+                    Expect.equal points 1134
+        , test "20x20, 119 seconds, Hard"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 20 119 Hard
+                in
+                    Expect.equal points 1081
+        , test "40x40, 0 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 0 Easy
+                in
+                    Expect.equal points 1800
+        , test "40x40, 33 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 33 Easy
+                in
+                    Expect.equal points 1767
+        , test "40x40, 119 seconds, Easy"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 119 Easy
+                in
+                    Expect.equal points 1681
+        , test "40x40, 0 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 0 Medium
+                in
+                    Expect.equal points 2200
+        , test "40x40, 57 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 57 Medium
+                in
+                    Expect.equal points 2143
+        , test "40x40, 119 seconds, Medium"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 119 Medium
+                in
+                    Expect.equal points 2081
+        , test "40x40, 0 seconds, Hard"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 0 Hard
+                in
+                    Expect.equal points 2600
+        , test "40x40, 38 seconds, Hard"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 38 Hard
+                in
+                    Expect.equal points 2562
+        , test "40x40, 119 seconds, Hard"
+            <| \() ->
+                let
+                    points =
+                        M.calcPoints 40 119 Hard
+                in
+                    Expect.equal points 2481
         ]
 
 

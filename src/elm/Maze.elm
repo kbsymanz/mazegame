@@ -2,11 +2,13 @@ module Maze exposing (..)
 
 import Array
 import Html.App as App
+import Keyboard.Extra as Keyboard
 import List.Zipper as Zipper exposing (Zipper)
 import Material
-import Keyboard.Extra as Keyboard
-import Time exposing (Time)
 import Matrix
+import Task
+import Time exposing (Time)
+import Window
 
 
 -- LOCAL IMPORTS
@@ -55,6 +57,10 @@ init =
     let
         ( keyboardModel, keyboardCmd ) =
             Keyboard.init
+
+        -- Temp.
+        size =
+            { width = 800, height = 800 }
     in
         ( { mazes = Zipper.singleton <| createMaze mazeSize 1
           , mazeMode = Viewing
@@ -65,8 +71,15 @@ init =
           , mdl = Material.model
           , keyboardModel = keyboardModel
           , nextId = 2
+          , won = 0
+          , lost = 0
+          , points = 0
+          , windowSize = size
           }
-        , Cmd.map KeyboardExtraMsg keyboardCmd
+        , Cmd.batch
+            [ Cmd.map KeyboardExtraMsg keyboardCmd
+            , Task.perform Error WindowResize Window.size
+            ]
         )
 
 
@@ -74,10 +87,76 @@ init =
 -- UPDATE
 
 
+calcPoints : Int -> Int -> Difficulty -> Int
+calcPoints mazeSize secondsElapsed difficulty =
+    let
+        points =
+            case compare mazeSize 20 of
+                LT ->
+                    case difficulty of
+                        Easy ->
+                            200 - secondsElapsed
+
+                        Medium ->
+                            300 - secondsElapsed
+
+                        Hard ->
+                            400 - secondsElapsed
+
+                EQ ->
+                    case difficulty of
+                        Easy ->
+                            800 - secondsElapsed
+
+                        Medium ->
+                            1000 - secondsElapsed
+
+                        Hard ->
+                            1200 - secondsElapsed
+
+                GT ->
+                    case difficulty of
+                        Easy ->
+                            1800 - secondsElapsed
+
+                        Medium ->
+                            2200 - secondsElapsed
+
+                        Hard ->
+                            2600 - secondsElapsed
+    in
+        points
+
+
+resetCenterPlusWon : Model -> Bool -> Model
+resetCenterPlusWon model didWin =
+    let
+        currentMaze =
+            Zipper.current model.mazes
+
+        updatedMaze =
+            { currentMaze
+                | center = ( currentMaze.mazeSize - 2, currentMaze.mazeSize - 2 )
+                , timesWon =
+                    if didWin then
+                        currentMaze.timesWon + 1
+                    else
+                        currentMaze.timesWon
+            }
+
+        newMazes =
+            Zipper.update (always updatedMaze) model.mazes
+    in
+        { model | mazes = newMazes }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     --case Debug.log "update" msg of
     case msg of
+        Error e ->
+            model ! []
+
         Mdl mdlMsg ->
             Material.update mdlMsg model
 
@@ -98,6 +177,43 @@ update msg model =
                         model.timeLeft
             in
                 { model | mazeMode = mode, timeLeft = timeLeft } ! []
+
+        GameWon ->
+            -- TODO: toast the results.
+            let
+                currentMaze =
+                    Zipper.current model.mazes
+
+                -- We don't reward user playing the same maze that was already won
+                -- with the same number of points. The more they win that maze, the
+                -- less reward that there is for it.
+                points =
+                    calcPoints currentMaze.mazeSize (round model.timeLeft) model.mazeDifficulty
+                        |> flip (//) (currentMaze.timesWon + 1)
+
+                -- Reset center and times won for the next game.
+                newModel =
+                    resetCenterPlusWon model True
+            in
+                { newModel
+                    | mazeMode = Viewing
+                    , won = model.won + 1
+                    , points = model.points + points
+                }
+                    ! []
+
+        GameLost ->
+            -- TODO: toast the results.
+            let
+                -- Reset center and times won for the next game.
+                newModel =
+                    resetCenterPlusWon model False
+            in
+                { newModel
+                    | mazeMode = Viewing
+                    , lost = model.lost + 1
+                }
+                    ! []
 
         MazeDifficulty diff ->
             { model | mazeDifficulty = diff } ! []
@@ -248,6 +364,9 @@ update msg model =
                 center =
                     currentmaze.center
 
+                ( goalx, goaly ) =
+                    ( fst currentmaze.goal, snd currentmaze.goal )
+
                 ms =
                     currentmaze.mazeSize
 
@@ -307,16 +426,25 @@ update msg model =
 
                 updatedMazes =
                     Zipper.update (\m -> { m | center = ( newx, newy ) }) model.mazes
+
+                newCmd =
+                    if goalx == centerx && goaly == centery && model.mazeMode == Playing then
+                        Task.perform (always GameWon) (always GameWon) <| Task.succeed True
+                    else
+                        Cmd.none
             in
                 if model.mazeMode == Playing then
                     ( { model
                         | keyboardModel = keyboardModel
                         , mazes = updatedMazes
                       }
-                    , Cmd.map KeyboardExtraMsg keyboardCmd
+                    , Cmd.batch
+                        [ Cmd.map KeyboardExtraMsg keyboardCmd
+                        , newCmd
+                        ]
                     )
                 else
-                    model ! []
+                    model ! [ newCmd ]
 
         MazeGenerate mgMsg ->
             let
@@ -362,8 +490,17 @@ update msg model =
 
                         False ->
                             model.timeLeft
+
+                ( newModel, newCmd ) =
+                    if timeLeft == 0 && model.mazeMode == Playing then
+                        update GameLost model
+                    else
+                        ( model, Cmd.none )
             in
-                { model | timeLeft = timeLeft } ! []
+                { newModel | timeLeft = timeLeft } ! [ newCmd ]
+
+        WindowResize size ->
+            { model | windowSize = size } ! []
 
 
 
@@ -375,6 +512,7 @@ subscriptions model =
     Sub.batch
         [ Sub.map KeyboardExtraMsg Keyboard.subscriptions
         , Time.every Time.second Tick
+        , Window.resizes WindowResize
         ]
 
 

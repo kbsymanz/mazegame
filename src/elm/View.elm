@@ -142,6 +142,28 @@ viewPlaying model =
                         [ Card.view []
                             [ Card.text []
                                 [ Options.styled div
+                                    [ Typo.subhead
+                                    , Color.text Color.accent
+                                    , Color.background Color.accentContrast
+                                    ]
+                                    [ text "Find the" ]
+                                , Options.styled div
+                                    [ Typo.subhead
+                                    , Color.text Color.accent
+                                    , Color.background Color.accentContrast
+                                    ]
+                                    [ text "green cell" ]
+                                ]
+                            ]
+                        ]
+                    , cell
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Card.view []
+                            [ Card.text []
+                                [ Options.styled div
                                     [ Typo.display1
                                     ]
                                     [ round model.timeLeft
@@ -329,11 +351,15 @@ viewViewing model =
                         [ Card.view []
                             [ Card.title []
                                 [ Card.head
-                                    [ Color.text Color.primary
+                                    [ Color.text Color.accent
+                                    , Color.background Color.accentContrast
                                     ]
                                     [ text "Choose your difficulty" ]
                                 ]
-                            , Card.text [ Color.text Color.primary ]
+                            , Card.text
+                                [ Color.text Color.accent
+                                , Color.background Color.accentContrast
+                                ]
                                 [ Toggles.radio Mdl
                                     [ viewViewingContext, 1 ]
                                     model.mdl
@@ -364,6 +390,20 @@ viewViewing model =
                                     , Options.css "padding-right" "10px"
                                     ]
                                     [ text "Hard" ]
+                                ]
+                            , Card.text
+                                [ Color.text Color.primary
+                                , Color.background Color.primaryContrast
+                                ]
+                                [ Options.styled p
+                                    [ Typo.display1 ]
+                                    [ text <| "Games Won: " ++ (toString model.won) ]
+                                , Options.styled p
+                                    [ Typo.display1 ]
+                                    [ text <| "Games Lost: " ++ (toString model.lost) ]
+                                , Options.styled p
+                                    [ Typo.display1 ]
+                                    [ text <| "Total Points: " ++ (toString model.points) ]
                                 ]
                             ]
                         ]
@@ -517,18 +557,42 @@ viewMaze model =
         maze =
             Zipper.current model.mazes
 
-        -- TODO: widthHeight and blockSize to be determined by available
-        -- screen width and playmode instead of arbitrary like this.
+        winSize =
+            min model.windowSize.width model.windowSize.height
+
+        viewingWH =
+            winSize
+                // 2
+                |> flip (-) (winSize // 20)
+
+        editingWH =
+            winSize
+                // 4
+                |> (*) 3
+                |> flip (-) (winSize // 10)
+
+        playingWH =
+            winSize
+                // 8
+                |> (*) 7
+                |> flip (-) (winSize // 20)
+
         ( widthHeight, blockSize ) =
             case model.mazeMode of
                 Viewing ->
-                    ( 300, 300 // maze.mazeSize )
+                    ( viewingWH
+                    , viewingWH // maze.mazeSize
+                    )
 
                 Editing ->
-                    ( 600, 600 // maze.mazeSize )
+                    ( editingWH
+                    , editingWH // maze.mazeSize
+                    )
 
                 Playing ->
-                    ( 800, 800 // maze.mazeSize )
+                    ( playingWH
+                    , playingWH // maze.mazeSize
+                    )
 
         ( viewportSize, x, y ) =
             ( case ( model.mazeMode, model.mazeDifficulty ) of
@@ -547,14 +611,17 @@ viewMaze model =
             , snd maze.center
             )
 
-        vbx =
-            max 0 ((x * blockSize) - ((viewportSize * blockSize) // 2))
-
-        vby =
-            max 0 ((y * blockSize) - ((viewportSize * blockSize) // 2))
-
         displayWH =
             viewportSize * blockSize
+
+        ( vbx, vby ) =
+            if model.mazeMode /= Playing then
+                -- Show the whole maze unless in playing mode.
+                ( 0, 0 )
+            else
+                ( max 0 ((x * blockSize) - (displayWH // 2))
+                , max 0 ((y * blockSize) - (displayWH // 2))
+                )
     in
         S.svg
             [ S.width (intToPx widthHeight)
@@ -612,11 +679,13 @@ background model blockSize =
 drawCells : Maze -> Mode -> Int -> List (S.Svg Msg)
 drawCells maze mode blockSize =
     let
-        ( cells, centerX, centerY ) =
+        ( cells, centerX, centerY, goalX, goalY ) =
             ( Matrix.toIndexedArray maze.cells
                 |> Array.toList
             , fst maze.center
             , snd maze.center
+            , fst maze.goal
+            , snd maze.goal
             )
     in
         List.map
@@ -640,14 +709,15 @@ drawCells maze mode blockSize =
                         cell.southLink
                         cell.westLink
                         (centerX == col && centerY == row)
+                        (goalX == col && goalY == row)
                         mode
                         blockSize
             )
             cells
 
 
-drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> S.Svg Msg
-drawCell col row north east south west isCenter mode blockSize =
+drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> S.Svg Msg
+drawCell col row north east south west isCenter isGoal mode blockSize =
     let
         -- Translate for blockSize and 0 based Svg system.
         xs =
@@ -721,16 +791,21 @@ drawCell col row north east south west isCenter mode blockSize =
 
         cellLines =
             [ S.rect
-                [ S.width <| intToPx blockSize
-                , S.height <| intToPx blockSize
+                -- When practically visible, this is either the goal or center cell.
+                -- Make it smaller than a normal cell so that the walls are not
+                -- overwritten and are easy to see.
+                [ S.width <| intToPx (blockSize - 8)
+                , S.height <| intToPx (blockSize - 8)
                 , S.stroke fillColor
                 , S.fill
                     <| if isCenter && mode == Playing then
                         "lightblue"
+                       else if isGoal && mode == Playing then
+                        "green"
                        else
                         fillColor
-                , S.x (intToPx xs)
-                , S.y (intToPx ys)
+                , S.x (intToPx (xs + 4))
+                , S.y (intToPx (ys + 4))
                 ]
                 []
             ]
