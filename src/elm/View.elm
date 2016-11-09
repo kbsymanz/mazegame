@@ -221,7 +221,7 @@ viewEditing model =
                 , size Phone 4
                 ]
                 [ grid
-                    [ Color.background <| Color.accent
+                    [ Color.background Color.accent
                     ]
                     -- Title of the maze.
                     [ cell
@@ -788,31 +788,42 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
                     ]
                     []
                 ]
+        goal =
+            if isGoal then
+                [ S.rect
+                    [ S.width <| intToPx (blockSize - 8)
+                    , S.height <| intToPx (blockSize - 8)
+                    , S.stroke fillColor
+                    , S.fill "green"
+                    , S.x (intToPx (xs + 4))
+                    , S.y (intToPx (ys + 4))
+                    ]
+                    []
+                ]
+            else
+                []
+
+        center =
+            if isCenter then
+                [ S.circle
+                    [ S.stroke fillColor
+                    , S.fill "lightblue"
+                    , S.cx <| intToPx (xs + (blockSize // 2))
+                    , S.cy <| intToPx (ys + (blockSize // 2))
+                    , S.r <| intToPx (blockSize // 2)
+                    ]
+                    []
+                ]
+            else
+                []
 
         cellLines =
-            [ S.rect
-                -- When practically visible, this is either the goal or center cell.
-                -- Make it smaller than a normal cell so that the walls are not
-                -- overwritten and are easy to see.
-                [ S.width <| intToPx (blockSize - 8)
-                , S.height <| intToPx (blockSize - 8)
-                , S.stroke fillColor
-                , S.fill
-                    <| if isCenter && mode == Playing then
-                        "lightblue"
-                       else if isGoal && mode == Playing then
-                        "green"
-                       else
-                        fillColor
-                , S.x (intToPx (xs + 4))
-                , S.y (intToPx (ys + 4))
-                ]
-                []
-            ]
-                ++ topLine
-                ++ rightLine
-                ++ bottomLine
-                ++ leftLine
+            center
+            ++ goal
+            ++ topLine
+            ++ rightLine
+            ++ bottomLine
+            ++ leftLine
     in
         S.g []
             cellLines
