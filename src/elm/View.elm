@@ -203,6 +203,9 @@ viewEditing model =
     let
         currentMaze =
             Zipper.current model.mazes
+
+        isGenerating =
+            model.mazeGenerate.status == MG.InProcess
     in
         grid
             [ Color.background <| Color.accentContrast
@@ -306,6 +309,10 @@ viewEditing model =
                             [ Button.ripple
                             , Button.colored
                             , Button.onClick <| PlayMode Viewing
+                            , if isGenerating then
+                                Button.disabled
+                              else
+                                Options.nop
                             ]
                             [ text "Done Editing" ]
                         ]
@@ -788,6 +795,7 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
                     ]
                     []
                 ]
+
         goal =
             if isGoal then
                 [ S.rect
@@ -819,11 +827,11 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
 
         cellLines =
             center
-            ++ goal
-            ++ topLine
-            ++ rightLine
-            ++ bottomLine
-            ++ leftLine
+                ++ goal
+                ++ topLine
+                ++ rightLine
+                ++ bottomLine
+                ++ leftLine
     in
         S.g []
             cellLines
