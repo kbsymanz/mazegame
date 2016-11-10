@@ -7,7 +7,6 @@ import List
 import List.Zipper as Zipper exposing (Zipper)
 import Matrix
 import Material
-import Material.Badge as Badge
 import Material.Button as Button
 import Material.Card as Card
 import Material.Chip as Chip
@@ -282,21 +281,6 @@ viewEditing model =
                             [ text "4. Click the Done Editing button when you are satisfied." ]
                         ]
                     , cell
-                        -- Title of the maze.
-                        [ size Desktop 12
-                        , size Tablet 8
-                        , size Phone 4
-                        ]
-                        [ Textfield.render Mdl
-                            [ viewEditingContext, 1 ]
-                            model.mdl
-                            [ Textfield.label "Title"
-                            , Textfield.floatingLabel
-                            , Textfield.value currentMaze.title
-                            , Textfield.onInput SetTitle
-                            ]
-                        ]
-                    , cell
                         -- The size of the maze to generate.
                         [ size Desktop 12
                         , size Tablet 8
@@ -350,6 +334,21 @@ viewEditing model =
                         , Chip.span []
                             [ Chip.content []
                                 [ text <| (toString currentMaze.percComplete) ++ "%" ]
+                            ]
+                        ]
+                    , cell
+                        -- Title of the maze.
+                        [ size Desktop 12
+                        , size Tablet 8
+                        , size Phone 4
+                        ]
+                        [ Textfield.render Mdl
+                            [ viewEditingContext, 1 ]
+                            model.mdl
+                            [ Textfield.label "Title"
+                            , Textfield.floatingLabel
+                            , Textfield.value currentMaze.title
+                            , Textfield.onInput SetTitle
                             ]
                         ]
                     , cell
