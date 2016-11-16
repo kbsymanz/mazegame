@@ -732,6 +732,12 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
         strokeColor =
             "black"
 
+        goalSize =
+            (toFloat blockSize) * 0.75 |> round
+
+        goalOffset =
+            (blockSize - goalSize) // 2
+
         {- : Generate lines but only if needed. -}
         topLine =
             if north then
@@ -791,12 +797,12 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
         goal =
             if isGoal then
                 [ S.rect
-                    [ S.width <| intToPx (blockSize - 8)
-                    , S.height <| intToPx (blockSize - 8)
+                    [ S.width <| intToPx goalSize
+                    , S.height <| intToPx goalSize
                     , S.stroke fillColor
                     , S.fill "green"
-                    , S.x (intToPx (xs + 4))
-                    , S.y (intToPx (ys + 4))
+                    , S.x (intToPx (goalOffset))
+                    , S.y (intToPx (goalOffset))
                     ]
                     []
                 ]
