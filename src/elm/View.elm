@@ -14,7 +14,6 @@ import Material.Color as Color
 import Material.Grid as Grid exposing (grid, cell, size, Device(..))
 import Material.Layout as Layout
 import Material.Options as Options
-import Material.Textfield as Textfield
 import Material.Toggles as Toggles
 import Material.Typography as Typo
 import Svg as S
@@ -84,7 +83,7 @@ view model =
         model.mdl
         [ Layout.fixedHeader
         ]
-        { header = headerSmall "Maze Deathtrap" model
+        { header = headerSmall "A Maze Game" model
         , drawer = []
         , tabs = ( [], [] )
         , main = [ viewMain model ]
@@ -267,17 +266,6 @@ viewEditing model =
                             [ Typo.subhead
                             , Color.text Color.accentContrast
                             ]
-                            [ text "3. Optionally name your maze by changing the Title field." ]
-                        ]
-                    , cell
-                        [ size Desktop 12
-                        , size Tablet 8
-                        , size Phone 4
-                        ]
-                        [ Options.styled p
-                            [ Typo.subhead
-                            , Color.text Color.accentContrast
-                            ]
                             [ text "4. Click the Done Editing button when you are satisfied." ]
                         ]
                     , cell
@@ -334,21 +322,6 @@ viewEditing model =
                         , Chip.span []
                             [ Chip.content []
                                 [ text <| (toString currentMaze.percComplete) ++ "%" ]
-                            ]
-                        ]
-                    , cell
-                        -- Title of the maze.
-                        [ size Desktop 12
-                        , size Tablet 8
-                        , size Phone 4
-                        ]
-                        [ Textfield.render Mdl
-                            [ viewEditingContext, 1 ]
-                            model.mdl
-                            [ Textfield.label "Title"
-                            , Textfield.floatingLabel
-                            , Textfield.value currentMaze.title
-                            , Textfield.onInput SetTitle
                             ]
                         ]
                     , cell
@@ -626,14 +599,7 @@ mazeMetaInfo mdl idx maze isCurrentMaze mazeDifficulty =
                 , Card.border
                 , Options.attribute <| Html.onClick <| GoToMaze idx
                 ]
-                [ Card.title []
-                    [ Card.head
-                        [ Color.background backgroundColor
-                        , Color.text textColor
-                        ]
-                        [ text ("Title: " ++ maze.title) ]
-                    ]
-                , Card.text [ Color.text textColor ]
+                [ Card.text [ Color.text textColor ]
                     [ text ("Size: " ++ gws) ]
                 , Card.text []
                     [ Button.render Mdl

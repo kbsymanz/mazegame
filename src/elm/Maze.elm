@@ -343,14 +343,6 @@ update msg model =
             in
                 { model | mazes = newMazes } ! []
 
-        SetTitle title ->
-            let
-                newMazes =
-                    Zipper.current model.mazes
-                        |> (\m -> Zipper.update (always { m | title = title }) model.mazes)
-            in
-                { model | mazes = newMazes } ! []
-
         KeyboardExtraMsg keyMsg ->
             let
                 ( keyboardModel, keyboardCmd ) =
