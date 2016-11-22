@@ -832,7 +832,10 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
             (toFloat blockSize) * 0.75 |> round
 
         goalOffset =
-            (blockSize - goalSize) // 2
+            (toFloat blockSize)
+                |> flip (-) (toFloat goalSize)
+                |> flip (/) 2
+                |> round
 
         {- : Generate lines but only if needed. -}
         topLine =
