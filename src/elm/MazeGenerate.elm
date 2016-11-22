@@ -195,13 +195,14 @@ generateBinaryTreeBatch : Model -> ( Model, Cmd Msg )
 generateBinaryTreeBatch model =
     let
         ( boolList, newSeed ) =
-            Random.step (Random.list 4 Random.bool) model.seed
+            Random.step (Random.list 5 Random.bool) model.seed
 
-        ( b1, b2, b3, b4 ) =
+        ( b1, b2, b3, b4, b5 ) =
             ( Maybe.withDefault False <| List.head boolList
             , Maybe.withDefault False <| List.head <| List.drop 1 boolList
             , Maybe.withDefault False <| List.head <| List.drop 2 boolList
             , Maybe.withDefault False <| List.head <| List.drop 3 boolList
+            , Maybe.withDefault False <| List.head <| List.drop 4 boolList
             )
 
         ( model1, isComplete1 ) =
@@ -224,8 +225,14 @@ generateBinaryTreeBatch model =
                 generateBinaryTreeLink b4 model3
             else
                 ( model3, True )
+
+        ( model5, isComplete5 ) =
+            if not isComplete4 then
+                generateBinaryTreeLink b5 model4
+            else
+                ( model4, True )
     in
-        { model4 | seed = newSeed } ! []
+        { model5 | seed = newSeed } ! []
 
 
 generateBinaryTreeLink : Bool -> Model -> ( Model, Bool )
