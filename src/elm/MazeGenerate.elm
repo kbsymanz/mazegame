@@ -12,8 +12,14 @@ module MazeGenerate
         , advanceByCell
         , generateBinaryTreeStep
         , link
+        , generateRecursiveBacktracker
+        , neighbors
+        , discernLinkDir
+        , addCellLinks
         )
 
+import Array
+import List.Extra as LE
 import Matrix exposing (Matrix)
 import Process
 import Random
@@ -36,11 +42,17 @@ type alias Model =
     , mazeSize : Int
     , currCol : Int
     , currRow : Int
+    , work : List ( Int, Int )
+    , done : List ( Int, Int )
     , status : MazeStatus
     , mazeId : Maybe Int
     , percComplete : Int
     , seed : Random.Seed
     }
+
+
+type alias WorkUnit =
+    ( ( Int, Int ), Cell )
 
 
 type MazeStatus
@@ -56,6 +68,8 @@ emptyModel =
     , mazeSize = 10
     , currCol = 0
     , currRow = 0
+    , work = []
+    , done = []
     , status = Empty
     , mazeId = Nothing
     , percComplete = 0
@@ -71,6 +85,24 @@ type alias Cell =
     }
 
 
+initializeMaze : Int -> Int -> Model -> Model
+initializeMaze size mazeId model =
+    let
+        initializedModel =
+            if model.status /= InProcess then
+                initModel
+                    { emptyModel
+                        | mazeSize = size
+                        , status = InProcess
+                        , mazeId = Just mazeId
+                        , percComplete = 0
+                    }
+            else
+                model
+    in
+        initializedModel
+
+
 type Msg
     = Init
     | Error String
@@ -80,6 +112,9 @@ type Msg
     | BinaryTreeComplete
     | MazeGenerationStop
     | NewSeed Time.Time
+    | RecursiveBacktrackerInit Int Int
+    | RecursiveBacktrackerUpdate
+    | RecursiveBacktrackerComplete
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -96,29 +131,14 @@ update msg model =
 
         BinaryTreeInit size mazeId ->
             let
-                -- Initialize the cells to the proper size but only if we are not
-                -- already processing another maze and have not processed this
-                -- one yet.
-                ( initializedModel, newCmd ) =
-                    if
-                        model.status
-                            == Empty
-                            || model.status
-                            == Complete
-                            || model.status
-                            == Stopped
-                    then
-                        ( initModel
-                            { emptyModel
-                                | mazeSize = size
-                                , status = InProcess
-                                , mazeId = Just mazeId
-                                , percComplete = 0
-                            }
-                        , Random.generate BinaryTreeUpdate Random.bool
-                        )
+                initializedModel =
+                    initializeMaze size mazeId model
+
+                newCmd =
+                    if model.status /= InProcess then
+                        Random.generate BinaryTreeUpdate Random.bool
                     else
-                        ( model, Cmd.none )
+                        Cmd.none
             in
                 initializedModel ! [ newCmd ]
 
@@ -172,6 +192,61 @@ update msg model =
             in
                 { model | status = newStatus } ! []
 
+        RecursiveBacktrackerInit size mazeId ->
+            let
+                initializedModel =
+                    initializeMaze size mazeId model
+
+                -- Choose a random cell coordinates.
+                ( ( col, row ), seed ) =
+                    Random.step (Random.pair (Random.int 0 (size - 1)) (Random.int 0 (size - 1))) model.seed
+
+                -- Initialize the starting point of maze generation with a random cell.
+                -- We can create the cell on the fly because we know that it has no links
+                -- and it does not hold more information than that.
+                adjustedModel =
+                    { initializedModel | work = [ ( col, row ) ] }
+
+                newCmd =
+                    if model.status /= InProcess then
+                        Task.perform (always RecursiveBacktrackerUpdate) (always RecursiveBacktrackerUpdate) (Task.succeed True)
+                    else
+                        Cmd.none
+            in
+                { adjustedModel | seed = seed } ! [ newCmd ]
+
+        RecursiveBacktrackerUpdate ->
+            let
+                ( newModel, isComplete ) =
+                    generateRecursiveBacktracker model
+
+                percComplete =
+                    if model.status /= Stopped then
+                        List.length newModel.done
+                            |> toFloat
+                            |> flip (/) (toFloat (model.mazeSize * model.mazeSize))
+                            |> (*) 100.0
+                            |> round
+                    else
+                        0
+
+                newCmd =
+                    (if isComplete then
+                        let
+                            _ =
+                                Debug.log "newCmd" "DONE"
+                        in
+                            RecursiveBacktrackerComplete
+                     else
+                        RecursiveBacktrackerUpdate
+                    )
+                        |> (\m -> Task.perform (always m) (always m) <| Process.sleep 0)
+            in
+                { newModel | percComplete = percComplete } ! [ newCmd ]
+
+        RecursiveBacktrackerComplete ->
+            { model | percComplete = 100, status = Complete } ! []
+
 
 {-| Initialize the cells field of the model with unlinked cells according to
     the mazeSize field.
@@ -183,6 +258,198 @@ initModel model =
             Matrix.repeat model.mazeSize model.mazeSize (Cell False False False False)
     in
         { model | cells = matrix }
+
+
+neighbors : Int -> Int -> Int -> List ( Int, Int )
+neighbors col row mazeSize =
+    let
+        neighbors =
+            [ ( col, row - 1 )
+            , ( col + 1, row )
+            , ( col, row + 1 )
+            , ( col - 1, row )
+            ]
+                |> List.filter (\c -> fst c >= 0 && fst c < mazeSize && snd c >= 0 && snd c < mazeSize)
+    in
+        neighbors
+
+
+discernLinkDir : Int -> Int -> Int -> Int -> Maybe Direction
+discernLinkDir col1 row1 col2 row2 =
+    case col1 == col2 of
+        True ->
+            case row1 == row2 of
+                True ->
+                    -- Cell 1 is the same as cell 2.
+                    Nothing
+
+                False ->
+                    if abs (row1 - row2) > 1 then
+                        -- None adjacent rows.
+                        Nothing
+                    else
+                        if row1 < row2 then
+                            Just South
+                        else
+                            Just North
+
+        False ->
+            case col1 < col2 of
+                True ->
+                    if abs (col1 - col2) > 1 then
+                        -- None adjacent columns.
+                        Nothing
+                    else
+                        case row1 == row2 of
+                            True ->
+                                Just East
+
+                            False ->
+                                -- The cells are not adjacent with each other.
+                                Nothing
+
+                False ->
+                    if abs (col1 - col2) > 1 then
+                        -- None adjacent columns.
+                        Nothing
+                    else
+                        case row1 == row2 of
+                            True ->
+                                Just West
+
+                            False ->
+                                -- The cells are not adjacent with each other.
+                                Nothing
+
+
+generateRecursiveBacktracker : Model -> ( Model, Bool )
+generateRecursiveBacktracker model =
+    let
+        isComplete =
+            List.isEmpty model.work
+
+        usableNeighbors =
+            case List.head model.work of
+                Just cellCoordinates ->
+                    let
+                        ( c, r ) =
+                            ( fst cellCoordinates, snd cellCoordinates )
+
+                        -- Neighbors minus those already in our work and done fields.
+                        usableNeighbors =
+                            neighbors c r model.mazeSize
+                                |> List.filter (\i -> not (List.member i model.work))
+                                |> List.filter (\i -> not (List.member i model.done))
+                    in
+                        usableNeighbors
+
+                Nothing ->
+                    -- isComplete should also be True.
+                    []
+
+        ( newWork, newSeed, newDone ) =
+            case List.isEmpty usableNeighbors of
+                True ->
+                    -- No neighbors, so drop current work from the front
+                    -- of work and allow next iteration to continue.
+                    ( List.drop 1 model.work, model.seed, model.done )
+
+                False ->
+                    let
+                        ( index, seed ) =
+                            Random.step (Random.int 0 <| flip (-) 1 <| List.length usableNeighbors) model.seed
+                        ( newWork, newDone ) =
+                            case LE.getAt index usableNeighbors of
+                                Just (c2, r2) ->
+                                    ( (c2, r2) :: model.work, (c2, r2) :: model.done )
+
+                                Nothing ->
+                                    -- Should not get here.
+                                    let
+                                        _ =
+                                            Debug.log "Invalid index into usableNeighbors" <| toString index
+                                        _ =
+                                            Debug.log "usableNeighbors" <| toString usableNeighbors
+                                    in
+                                        ( model.work, model.done )
+                    in
+                        ( newWork, seed, newDone )
+        newCells =
+            let
+                newCell1 =
+                    LE.getAt 1 newWork
+
+                newCell2 =
+                    LE.getAt 0 newWork
+
+                cells =
+                    case newCell1 of
+                        Just c1 ->
+                            case newCell2 of
+                                Just c2 ->
+                                    let
+                                        dir =
+                                            discernLinkDir (fst c1) (snd c1) (fst c2) (snd c2)
+                                        cell =
+                                            Matrix.get (fst c1) (snd c1) model.cells
+
+                                        newModel =
+                                            case dir of
+                                                Just d ->
+                                                    case cell of
+                                                        Just c ->
+                                                            link (fst c1) (snd c1) c d model
+                                                        Nothing ->
+                                                            let
+                                                                _ =
+                                                                    Debug.log "apple" <| toString True
+                                                            in
+                                                                model
+
+                                                Nothing ->
+                                                    let
+                                                        _ =
+                                                            Debug.log "banana" <| toString True
+                                                    in
+                                                        model
+                                    in
+                                        newModel.cells
+
+                                Nothing ->
+                                    let
+                                        _ =
+                                            Debug.log "cat" <| toString True
+                                    in
+                                        model.cells
+
+                        Nothing ->
+                            model.cells
+
+            in
+                cells
+    in
+        ( { model | work = newWork, cells = newCells, seed = newSeed, done = newDone }, isComplete )
+
+
+addCellLinks : Cell -> Cell -> Maybe Direction -> ( Cell, Cell )
+addCellLinks cell1 cell2 dir =
+    case dir of
+        Just d ->
+            case d of
+                North ->
+                    ( { cell1 | northLink = True }, { cell2 | southLink = True } )
+
+                East ->
+                    ( { cell1 | eastLink = True }, { cell2 | westLink = True } )
+
+                South ->
+                    ( { cell1 | southLink = True }, { cell2 | northLink = True } )
+
+                West ->
+                    ( { cell1 | westLink = True }, { cell2 | eastLink = True } )
+
+        Nothing ->
+            ( cell1, cell2 )
 
 
 {-| Do four links at once without entering the TEA cycle.

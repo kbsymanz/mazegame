@@ -1,9 +1,12 @@
 module Tests exposing (..)
 
-import Test exposing (..)
-import Expect
-import String
 import Array
+import Expect
+import List.Extra as LE
+import Random
+import String
+import Test exposing (..)
+import Fuzz
 
 
 -- Project specific imports.
@@ -39,6 +42,10 @@ all =
         , linkTests
         , updateTests
         , calcPointsTests
+        , recursiveBacktrackerTests
+        , neighborsTests
+        , discernLinkDirTests
+        , addCellLinksTests
         ]
 
 
@@ -220,6 +227,72 @@ calcPointsTests =
                         M.calcPoints 40 119 Hard
                 in
                     Expect.equal points 2481
+        ]
+
+
+addCellLinksTests : Test
+addCellLinksTests =
+    describe "addCellLinks"
+        [ test "North"
+            <| \() ->
+                let
+                    ( cell1, cell2 ) =
+                        ( MG.Cell False False False False
+                        , MG.Cell False False False False
+                        )
+
+                    ( cell3, cell4 ) =
+                        MG.addCellLinks cell1 cell2 (Just MG.North)
+                in
+                    Expect.equal (cell3.northLink && cell4.southLink) True
+        , test "East"
+            <| \() ->
+                let
+                    ( cell1, cell2 ) =
+                        ( MG.Cell False False False False
+                        , MG.Cell False False False False
+                        )
+
+                    ( cell3, cell4 ) =
+                        MG.addCellLinks cell1 cell2 (Just MG.East)
+                in
+                    Expect.equal (cell3.eastLink && cell4.westLink) True
+        , test "South"
+            <| \() ->
+                let
+                    ( cell1, cell2 ) =
+                        ( MG.Cell False False False False
+                        , MG.Cell False False False False
+                        )
+
+                    ( cell3, cell4 ) =
+                        MG.addCellLinks cell1 cell2 (Just MG.South)
+                in
+                    Expect.equal (cell3.southLink && cell4.northLink) True
+        , test "West"
+            <| \() ->
+                let
+                    ( cell1, cell2 ) =
+                        ( MG.Cell False False False False
+                        , MG.Cell False False False False
+                        )
+
+                    ( cell3, cell4 ) =
+                        MG.addCellLinks cell1 cell2 (Just MG.West)
+                in
+                    Expect.equal (cell3.westLink && cell4.eastLink) True
+        , test "Nothing"
+            <| \() ->
+                let
+                    ( cell1, cell2 ) =
+                        ( MG.Cell False False False False
+                        , MG.Cell False False False False
+                        )
+
+                    ( cell3, cell4 ) =
+                        MG.addCellLinks cell1 cell2 Nothing
+                in
+                    Expect.equal (cell1 == cell3 && cell2 == cell4) True
         ]
 
 
@@ -685,6 +758,437 @@ linkTests =
         ]
 
 
+discernLinkDirTests : Test
+discernLinkDirTests =
+    describe "discernLinkDir"
+        [ test "East link"
+            <| \() ->
+                let
+                    ( c1, r1, c2, r2 ) =
+                        ( 1, 1, 2, 1 )
+
+                    dir =
+                        MG.discernLinkDir c1 r1 c2 r2
+                in
+                    Expect.equal (Just MG.East == dir) True
+        , test "West link"
+            <| \() ->
+                let
+                    ( c1, r1, c2, r2 ) =
+                        ( 1, 1, 0, 1 )
+
+                    dir =
+                        MG.discernLinkDir c1 r1 c2 r2
+                in
+                    Expect.equal (Just MG.West == dir) True
+        , test "North link"
+            <| \() ->
+                let
+                    ( c1, r1, c2, r2 ) =
+                        ( 1, 1, 1, 0 )
+
+                    dir =
+                        MG.discernLinkDir c1 r1 c2 r2
+                in
+                    Expect.equal (Just MG.North == dir) True
+        , test "South link"
+            <| \() ->
+                let
+                    ( c1, r1, c2, r2 ) =
+                        ( 1, 1, 1, 2 )
+
+                    dir =
+                        MG.discernLinkDir c1 r1 c2 r2
+                in
+                    Expect.equal (Just MG.South == dir) True
+        , test "diagonal is not a link"
+            <| \() ->
+                let
+                    ( c1, r1, c2, r2 ) =
+                        ( 1, 1, 0, 0 )
+
+                    dir =
+                        MG.discernLinkDir c1 r1 c2 r2
+                in
+                    Expect.equal (Nothing == dir) True
+        , test "non-adjacent columns"
+            <| \() ->
+                let
+                    ( c1, r1, c2, r2 ) =
+                        ( 0, 0, 2, 0 )
+
+                    dir =
+                        MG.discernLinkDir c1 r1 c2 r2
+                in
+                    Expect.equal (Nothing == dir) True
+        , test "non-adjacent rows"
+            <| \() ->
+                let
+                    ( c1, r1, c2, r2 ) =
+                        ( 2, 0, 2, 2 )
+
+                    dir =
+                        MG.discernLinkDir c1 r1 c2 r2
+                in
+                    Expect.equal (Nothing == dir) True
+        ]
+
+
+recursiveBacktrackerTests : Test
+recursiveBacktrackerTests =
+    describe "RecursiveBacktracker"
+        [ describe "generateRecursiveBacktracker"
+            [ test "returns complete if work field is empty"
+                <| \() ->
+                    let
+                        ( _, isComplete ) =
+                            MG.emptyModel
+                                |> MG.initModel
+                                |> MG.generateRecursiveBacktracker
+                    in
+                        Expect.equal isComplete True
+            , test "returns not complete if work field is not empty"
+                <| \() ->
+                    let
+                        newWork =
+                            [ (2, 2) ]
+
+                        ( _, isComplete ) =
+                            MG.emptyModel
+                                |> (\m -> { m | work = newWork })
+                                |> MG.initModel
+                                |> MG.generateRecursiveBacktracker
+                    in
+                        Expect.equal isComplete False
+            , test "updates model.seed with a new value"
+                <| \() ->
+                    let
+                        newWork =
+                            [ (2, 2) ]
+
+                        startingModel =
+                            MG.emptyModel
+                                |> (\m -> { m | work = newWork })
+                                |> MG.initModel
+
+                        ( newModel, _ ) =
+                            MG.generateRecursiveBacktracker startingModel
+                    in
+                        Expect.equal (newModel.seed /= startingModel.seed) True
+            , test "links to the neighbor unvisited if only one unvisited & all others unchanged"
+                <| \() ->
+                    let
+                        -- Start with 1,0 and link to 0,0 then run test with
+                        -- 0,0 at top of work stack.
+                        ( col1, row1, col2, row2 ) =
+                            ( 1, 0, 0, 0 )
+
+                        -- The new cell that should be linked to.
+                        ( col3, row3 ) =
+                            ( 0, 1 )
+
+                        -- Push onto the work stack.
+                        newWork =
+                            [ (col2, row2), (col1, row1) ]
+
+                        -- Bring the cells into alignment with the work stack and
+                        -- run the process.
+                        ( model, _ ) =
+                            MG.emptyModel
+                                |> (\m -> { m | work = newWork })
+                                |> MG.initModel
+                                |> \model ->
+                                    let
+                                        newCells =
+                                            model.cells
+                                                |> Matrix.set col2 row2 (MG.Cell False True False False)
+                                                |> Matrix.set col1 row1 (MG.Cell False False False True)
+                                    in
+                                        { model | cells = newCells }
+                                            |> MG.generateRecursiveBacktracker
+
+                        ( workList, cell1, cell2, cell3 ) =
+                            ( List.take 3 model.work
+                            , Matrix.get col1 row1 model.cells
+                            , Matrix.get col2 row2 model.cells
+                            , Matrix.get col3 row3 model.cells
+                            )
+
+                        finalCells =
+                            Matrix.toIndexedArray model.cells
+                                |> Array.filter
+                                    (\( ( x, y ), cell ) ->
+                                        if cell.northLink || cell.eastLink || cell.southLink || cell.westLink then
+                                            True
+                                        else
+                                            False
+                                    )
+
+                        finalCellsOk =
+                            Array.length finalCells == 3
+                                && ( Array.filter (\((c, r), cell) -> c == col3 && r == row3) finalCells
+                                        |> Array.length
+                                        |> (==) 1
+                                   )
+
+                        cellOneOk =
+                            case cell1 of
+                                Just c ->
+                                    not c.northLink && not c.eastLink && not c.southLink && c.westLink
+
+                                Nothing ->
+                                    False
+
+                        cellTwoOk =
+                            case cell2 of
+                                Just c ->
+                                    not c.northLink && c.eastLink && c.southLink && not c.westLink
+
+                                Nothing ->
+                                    False
+
+                        cellThreeOk =
+                            case cell3 of
+                                Just c ->
+                                    c.northLink && not c.eastLink && not c.southLink && not c.westLink
+
+                                Nothing ->
+                                    False
+                    in
+                        Expect.equal
+                            ( cellOneOk
+                                && cellTwoOk
+                                && cellThreeOk
+                                && finalCellsOk
+                            )
+                            True
+            , fuzzWith { runs = 100 } (Fuzz.intRange 0 999999) "Updates the model with the contents of work"
+                <| \fuzzInt ->
+                    let
+                        --_ =
+                        --Debug.log "fuzzInt" <| toString fuzzInt
+                        ( col1, row1 ) =
+                            ( 0, 0 )
+
+                        -- Potential cells chosen randomly, horizontal and vertical.
+                        ( horCol, horRow, verCol, verRow ) =
+                            ( 1, 0, 0, 1 )
+
+                        -- Set our starting point so we know what to expect.
+                        newWork =
+                            [ (col1, row1) ]
+
+                        -- Run it.
+                        ( model, isComplete ) =
+                            MG.emptyModel
+                                |> (\m -> { m | work = newWork, mazeSize = 10, seed = Random.initialSeed fuzzInt })
+                                |> MG.initModel
+                                |> MG.generateRecursiveBacktracker
+
+                        -- Retrieve the results from the model returned.
+                        ( workList, cell1, horCell, verCell ) =
+                            ( List.take 2 model.work
+                            , Matrix.get col1 row1 model.cells
+                            , Matrix.get horCol horRow model.cells
+                            , Matrix.get verCol verRow model.cells
+                            )
+
+                        -- Check the results.
+                        isOk =
+                            -- Get the cell at the top of the stack so that we can check that
+                            -- the corresponding cell has the proper direction set.
+                            case List.head workList of
+                                Just wu ->
+                                    let
+                                        --( c, r, cel ) =
+                                            --MG.parseWorkUnit wu
+                                        (c, r) =
+                                            ( fst wu, snd wu )
+                                    in
+                                        case ( horCell, verCell ) of
+                                            ( Just hc, Just vc ) ->
+                                                if c == col1 then
+                                                    -- Same column, so a vertical link.
+                                                    vc.northLink
+                                                else
+                                                    if r == row1 then
+                                                        -- Same row, so a horizontal link.
+                                                        hc.westLink
+                                                    else
+                                                        False
+                                            _ ->
+                                                False
+
+                                Nothing ->
+                                    -- If everything is done, then this is correct.
+                                    isComplete
+                    in
+                        Expect.equal isOk True
+            ]
+        ]
+
+
+neighborsTests : Test
+neighborsTests =
+    describe "tests for neighbor related functions"
+        [ describe "neighbors"
+            [ test "returns south and east cells if in upper left"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 0, 0 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 0, 1 ), ( 1, 0 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            , test "returns south, west, and east cells if in top row middle"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 5, 0 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 4, 0 ), ( 6, 0 ), ( 5, 1 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            , test "returns south, west cells if in top row right"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 9, 0 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 8, 0 ), ( 9, 1 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            , test "returns north, south, west cells if in middle row left"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 0, 5 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 0, 4 ), ( 1, 5 ), ( 0, 6 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            , test "returns north, south, east, west cells if in middle row middle"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 5, 5 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 5, 4 ), ( 6, 5 ), ( 5, 6 ), ( 4, 5 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            , test "returns north, south, west cells if in middle row right"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 9, 5 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 9, 4 ), ( 9, 6 ), ( 8, 5 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            , test "returns north, west cells if in last row left"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 0, 9 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 0, 8 ), ( 1, 9 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            , test "returns north, east, west cells if in last row middle"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 5, 9 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 5, 8 ), ( 6, 9 ), ( 4, 9 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            , test "returns north, west cells if in last row right"
+                <| \() ->
+                    let
+                        ( col, row ) =
+                            ( 9, 9 )
+
+                        neighbors =
+                            MG.emptyModel
+                                |> (\m -> { m | mazeSize = 10 })
+                                |> MG.initModel
+                                |> .mazeSize
+                                |> MG.neighbors col row
+
+                        expected =
+                            [ ( 9, 8 ), ( 8, 9 ) ]
+                    in
+                        Expect.equal (List.sort neighbors) (List.sort expected)
+            ]
+        ]
+
+
 generateBinaryTreeTests : Test
 generateBinaryTreeTests =
     describe "generateBinaryTreeStep"
@@ -854,6 +1358,38 @@ updateTests =
                         MG.emptyModel
                             |> (\m -> { m | status = MG.InProcess })
                             |> MG.update (MG.BinaryTreeInit ms id)
+                in
+                    Expect.equal (mod.mazeSize /= ms && mod.mazeId /= (Just id)) True
+        , test "RecursiveBacktrackerInit creates maze of proper size and id"
+            <| \() ->
+                let
+                    ( ms, id ) =
+                        ( 12, 100 )
+
+                    ( mod, _ ) =
+                        MG.update (MG.RecursiveBacktrackerInit ms id) MG.emptyModel
+                in
+                    Expect.equal (mod.mazeSize == ms && mod.mazeId == (Just id)) True
+        , test "RecursiveBacktrackerInit creates Cmd msg"
+            <| \() ->
+                let
+                    ( ms, id ) =
+                        ( 14, 200 )
+
+                    ( _, cmd ) =
+                        MG.update (MG.RecursiveBacktrackerInit ms id) MG.emptyModel
+                in
+                    Expect.equal (cmd /= Cmd.none) True
+        , test "RecursiveBacktrackerInit does nothing when status /= Empty or Complete"
+            <| \() ->
+                let
+                    ( ms, id ) =
+                        ( 15, 300 )
+
+                    ( mod, _ ) =
+                        MG.emptyModel
+                            |> (\m -> { m | status = MG.InProcess })
+                            |> MG.update (MG.RecursiveBacktrackerInit ms id)
                 in
                     Expect.equal (mod.mazeSize /= ms && mod.mazeId /= (Just id)) True
         ]

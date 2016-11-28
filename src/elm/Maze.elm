@@ -132,8 +132,8 @@ calcPoints mazeSize secondsElapsed difficulty =
         points
 
 
-resetCenterPlusWon : Model -> Bool -> Model
-resetCenterPlusWon model didWin =
+resetCenterMaybeWon : Model -> Maybe Bool -> Model
+resetCenterMaybeWon model didWin =
     let
         currentMaze =
             Zipper.current model.mazes
@@ -142,10 +142,15 @@ resetCenterPlusWon model didWin =
             { currentMaze
                 | center = ( currentMaze.mazeSize - 2, currentMaze.mazeSize - 2 )
                 , timesWon =
-                    if didWin then
-                        currentMaze.timesWon + 1
-                    else
-                        currentMaze.timesWon
+                    case didWin of
+                        Just dw ->
+                            if dw then
+                                currentMaze.timesWon + 1
+                            else
+                                currentMaze.timesWon
+
+                        Nothing ->
+                            currentMaze.timesWon
             }
 
         newMazes =
@@ -179,8 +184,13 @@ update msg model =
                                 hardTime
                     else
                         model.timeLeft
+
+                -- Reset the center because the maze generation may
+                -- have moved it in order to allow user to view progress.
+                newModel =
+                    resetCenterMaybeWon model Nothing
             in
-                { model | mazeMode = mode, timeLeft = timeLeft } ! []
+                { newModel | mazeMode = mode, timeLeft = timeLeft } ! []
 
         GameWon ->
             -- TODO: toast the results.
@@ -197,7 +207,7 @@ update msg model =
 
                 -- Reset center and times won for the next game.
                 newModel =
-                    resetCenterPlusWon model True
+                    resetCenterMaybeWon model (Just True)
             in
                 { newModel
                     | mazeMode = Viewing
@@ -211,7 +221,7 @@ update msg model =
             let
                 -- Reset center and times won for the next game.
                 newModel =
-                    resetCenterPlusWon model False
+                    resetCenterMaybeWon model (Just False)
             in
                 { newModel
                     | mazeMode = Viewing
@@ -463,6 +473,25 @@ update msg model =
                                             { m
                                                 | cells = mgModel.cells
                                                 , percComplete = mgModel.percComplete
+                                                , center =
+                                                    if
+                                                        model.mazeMode
+                                                            == Editing
+                                                            && mgModel.status
+                                                            == MG.InProcess
+                                                    then
+                                                        -- Hack for testing.
+                                                        let
+                                                            ( c, r ) =
+                                                                case List.head mgModel.work of
+                                                                    Just c ->
+                                                                        (fst c, snd c)
+                                                                    Nothing ->
+                                                                        m.center
+                                                        in
+                                                            (c, r)
+                                                    else
+                                                        m.center
                                             }
                                         )
                                         model.mazes

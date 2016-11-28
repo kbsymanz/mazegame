@@ -316,7 +316,8 @@ viewEditing model =
                             model.mdl
                             [ Button.ripple
                             , Button.colored
-                            , Button.onClick <| MazeGenerate (MG.BinaryTreeInit currentMaze.mazeSize currentMaze.id)
+                              --, Button.onClick <| MazeGenerate (MG.BinaryTreeInit currentMaze.mazeSize currentMaze.id)
+                            , Button.onClick <| MazeGenerate (MG.RecursiveBacktrackerInit currentMaze.mazeSize currentMaze.id)
                             ]
                             [ text "Generate the maze" ]
                         , Chip.span []
@@ -913,7 +914,7 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
             if isCenter then
                 [ S.circle
                     [ S.stroke fillColor
-                    , S.fill "lightblue"
+                    , S.fill <| if mode == Editing then "blue" else "lightblue"
                     , S.cx <| intToPx (xs + (blockSize // 2))
                     , S.cy <| intToPx (ys + (blockSize // 2))
                     , S.r <| intToPx (blockSize // 2)
