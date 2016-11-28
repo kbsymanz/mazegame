@@ -198,6 +198,10 @@ update msg model =
                 currentMaze =
                     Zipper.current model.mazes
 
+                -- Reset the visited to nothing.
+                newMazes =
+                    Zipper.update (always { currentMaze | visited = [] }) model.mazes
+
                 -- We don't reward user playing the same maze that was already won
                 -- with the same number of points. The more they win that maze, the
                 -- less reward that there is for it.
@@ -213,6 +217,7 @@ update msg model =
                     | mazeMode = Viewing
                     , won = model.won + 1
                     , points = model.points + points
+                    , mazes = newMazes
                 }
                     ! []
 
@@ -431,7 +436,14 @@ update msg model =
                             centery
 
                 updatedMazes =
-                    Zipper.update (\m -> { m | center = ( newx, newy ) }) model.mazes
+                    Zipper.update
+                        (\m ->
+                            { m
+                            | center = ( newx, newy )
+                            , visited = ( newx, newy ) :: m.visited
+                            }
+                        )
+                        model.mazes
 
                 newCmd =
                     if goalx == centerx && goaly == centery && model.mazeMode == Playing then
@@ -485,11 +497,12 @@ update msg model =
                                                             ( c, r ) =
                                                                 case List.head mgModel.work of
                                                                     Just c ->
-                                                                        (fst c, snd c)
+                                                                        ( fst c, snd c )
+
                                                                     Nothing ->
                                                                         m.center
                                                         in
-                                                            (c, r)
+                                                            ( c, r )
                                                     else
                                                         m.center
                                             }

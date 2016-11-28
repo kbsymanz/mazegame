@@ -4,6 +4,7 @@ import Array
 import Html exposing (Html, div, p, text)
 import Html.Events as Html
 import List
+import List.Extra as LE
 import List.Zipper as Zipper exposing (Zipper)
 import Matrix
 import Material
@@ -809,12 +810,13 @@ drawCells maze mode blockSize =
                         (goalX == col && goalY == row)
                         mode
                         blockSize
+                        maze.visited
             )
             cells
 
 
-drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> S.Svg Msg
-drawCell col row north east south west isCenter isGoal mode blockSize =
+drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> List ( Int, Int ) -> S.Svg Msg
+drawCell col row north east south west isCenter isGoal mode blockSize visited =
     let
         -- Translate for blockSize and 0 based Svg system.
         xs =
@@ -831,6 +833,9 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
 
         goalSize =
             (toFloat blockSize) * 0.75 |> round
+
+        trailSize =
+            (toFloat goalSize) * 0.25 |> round
 
         goalOffset =
             (toFloat blockSize)
@@ -924,9 +929,33 @@ drawCell col row north east south west isCenter isGoal mode blockSize =
             else
                 []
 
+        isVisited =
+            case LE.find (\(c, r) -> c == col && r == row) visited of
+                Just cr ->
+                    True
+                Nothing ->
+                    False
+
+        trail =
+            if not isCenter
+                && mode == Playing
+                && isVisited then
+                [ S.circle
+                    [ S.stroke fillColor
+                    , S.fill "green"
+                    , S.cx <| intToPx (xs + (blockSize // 2))
+                    , S.cy <| intToPx (ys + (blockSize // 2))
+                    , S.r <| intToPx trailSize
+                    ]
+                    []
+                ]
+            else
+                []
+
         cellLines =
             center
                 ++ goal
+                ++ trail
                 ++ topLine
                 ++ rightLine
                 ++ bottomLine
