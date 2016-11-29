@@ -717,9 +717,15 @@ viewMaze model =
                 -- Show the whole maze unless in playing mode.
                 ( 0, 0 )
             else
-                ( max 0 ((x * blockSize) - (displayWH // 2))
-                , max 0 ((y * blockSize) - (displayWH // 2))
-                )
+                -- But Easy still allows to see the whole game at once.
+                -- This is for people who might get dizzy or a headache
+                -- from the whole maze shifting all of the time.
+                if model.mazeDifficulty == Easy then
+                    ( 0, 0 )
+                else
+                    ( max 0 ((x * blockSize) - (displayWH // 2))
+                    , max 0 ((y * blockSize) - (displayWH // 2))
+                    )
     in
         S.svg
             [ S.width (intToPx widthHeight)
