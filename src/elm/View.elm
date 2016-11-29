@@ -4,7 +4,6 @@ import Array
 import Html exposing (Html, div, p, text)
 import Html.Events as Html
 import List
-import List.Extra as LE
 import List.Zipper as Zipper exposing (Zipper)
 import Matrix
 import Material
@@ -816,12 +815,12 @@ drawCells maze mode blockSize =
                         (goalX == col && goalY == row)
                         mode
                         blockSize
-                        maze.visited
+                        cell.visited
             )
             cells
 
 
-drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> List ( Int, Int ) -> S.Svg Msg
+drawCell : Int -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Bool -> Mode -> Int -> Bool -> S.Svg Msg
 drawCell col row north east south west isCenter isGoal mode blockSize visited =
     let
         -- Translate for blockSize and 0 based Svg system.
@@ -935,17 +934,10 @@ drawCell col row north east south west isCenter isGoal mode blockSize visited =
             else
                 []
 
-        isVisited =
-            case LE.find (\(c, r) -> c == col && r == row) visited of
-                Just cr ->
-                    True
-                Nothing ->
-                    False
-
         trail =
             if not isCenter
                 && mode == Playing
-                && isVisited then
+                && visited then
                 [ S.circle
                     [ S.stroke fillColor
                     , S.fill "green"

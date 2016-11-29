@@ -198,9 +198,11 @@ update msg model =
                 currentMaze =
                     Zipper.current model.mazes
 
-                -- Reset the visited to nothing.
+                -- Reset the visited to nothing after a win.
                 newMazes =
-                    Zipper.update (always { currentMaze | visited = [] }) model.mazes
+                    Matrix.map (\c -> { c | visited = False} ) currentMaze.cells
+                        |> (\cells -> { currentMaze | cells = cells })
+                        |> (\maze -> Zipper.update (always maze) model.mazes)
 
                 -- We don't reward user playing the same maze that was already won
                 -- with the same number of points. The more they win that maze, the
@@ -393,7 +395,7 @@ update msg model =
                             c
 
                         Nothing ->
-                            { northLink = False, eastLink = False, southLink = False, westLink = False }
+                            MG.Cell False False False False False
 
                 newx =
                     case arrows.x of
@@ -435,12 +437,21 @@ update msg model =
                         _ ->
                             centery
 
+                newCells =
+                    case Matrix.get newx newy currentmaze.cells of
+                        Just c ->
+                            { c | visited = True }
+                                |> (\c -> Matrix.set newx newy c currentmaze.cells)
+
+                        Nothing ->
+                            currentmaze.cells
+
                 updatedMazes =
                     Zipper.update
                         (\m ->
                             { m
                             | center = ( newx, newy )
-                            , visited = ( newx, newy ) :: m.visited
+                            , cells = newCells
                             }
                         )
                         model.mazes

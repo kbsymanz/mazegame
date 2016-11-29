@@ -44,7 +44,6 @@ type alias Maze =
     , mazeSize : Int
     , center : ( Int, Int )
     , goal : ( Int, Int )
-    , visited : List ( Int, Int )
     , id : Int
     , percComplete : Int
     , timesWon : Int
@@ -73,7 +72,6 @@ createMaze mazeSize id =
         , mazeSize = mazeSize
         , center = ( cx, cy )
         , goal = ( 0, 0 )
-        , visited = []
         , id = id
         , percComplete = 0
         , timesWon = 0
@@ -82,4 +80,4 @@ createMaze mazeSize id =
 
 initialCells : Int -> Matrix MG.Cell
 initialCells size =
-    Matrix.repeat size size (MG.Cell False False False False)
+    Matrix.repeat size size (MG.Cell False False False False False)

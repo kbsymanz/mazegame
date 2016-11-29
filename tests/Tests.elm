@@ -237,8 +237,8 @@ addCellLinksTests =
             <| \() ->
                 let
                     ( cell1, cell2 ) =
-                        ( MG.Cell False False False False
-                        , MG.Cell False False False False
+                        ( MG.Cell False False False False False
+                        , MG.Cell False False False False False
                         )
 
                     ( cell3, cell4 ) =
@@ -249,8 +249,8 @@ addCellLinksTests =
             <| \() ->
                 let
                     ( cell1, cell2 ) =
-                        ( MG.Cell False False False False
-                        , MG.Cell False False False False
+                        ( MG.Cell False False False False False
+                        , MG.Cell False False False False False
                         )
 
                     ( cell3, cell4 ) =
@@ -261,8 +261,8 @@ addCellLinksTests =
             <| \() ->
                 let
                     ( cell1, cell2 ) =
-                        ( MG.Cell False False False False
-                        , MG.Cell False False False False
+                        ( MG.Cell False False False False False
+                        , MG.Cell False False False False False
                         )
 
                     ( cell3, cell4 ) =
@@ -273,8 +273,8 @@ addCellLinksTests =
             <| \() ->
                 let
                     ( cell1, cell2 ) =
-                        ( MG.Cell False False False False
-                        , MG.Cell False False False False
+                        ( MG.Cell False False False False False
+                        , MG.Cell False False False False False
                         )
 
                     ( cell3, cell4 ) =
@@ -285,8 +285,8 @@ addCellLinksTests =
             <| \() ->
                 let
                     ( cell1, cell2 ) =
-                        ( MG.Cell False False False False
-                        , MG.Cell False False False False
+                        ( MG.Cell False False False False False
+                        , MG.Cell False False False False False
                         )
 
                     ( cell3, cell4 ) =
@@ -901,8 +901,8 @@ recursiveBacktrackerTests =
                                     let
                                         newCells =
                                             model.cells
-                                                |> Matrix.set col2 row2 (MG.Cell False True False False)
-                                                |> Matrix.set col1 row1 (MG.Cell False False False True)
+                                                |> Matrix.set col2 row2 (MG.Cell False True False False False)
+                                                |> Matrix.set col1 row1 (MG.Cell False False False True False)
                                     in
                                         { model | cells = newCells }
                                             |> MG.generateRecursiveBacktracker

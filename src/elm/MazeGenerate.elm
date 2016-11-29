@@ -18,7 +18,6 @@ module MazeGenerate
         , addCellLinks
         )
 
-import Array
 import List.Extra as LE
 import Matrix exposing (Matrix)
 import Process
@@ -77,11 +76,16 @@ emptyModel =
     }
 
 
+{-| A cell representation. The visited field is not used
+by this module but is provided for the potential benefit
+of the calling module.
+-}
 type alias Cell =
     { northLink : Bool
     , eastLink : Bool
     , southLink : Bool
     , westLink : Bool
+    , visited : Bool
     }
 
 
@@ -241,6 +245,8 @@ update msg model =
                         RecursiveBacktrackerUpdate
                     )
                         |> (\m -> Task.perform (always m) (always m) <| Process.sleep 0)
+                        -- This is about twice as fast but visually unappealing.
+                        --|> (\m -> Task.perform (always m) (always m) <| Task.succeed 0)
             in
                 { newModel | percComplete = percComplete } ! [ newCmd ]
 
@@ -255,7 +261,7 @@ initModel : Model -> Model
 initModel model =
     let
         matrix =
-            Matrix.repeat model.mazeSize model.mazeSize (Cell False False False False)
+            Matrix.repeat model.mazeSize model.mazeSize (Cell False False False False False)
     in
         { model | cells = matrix }
 
